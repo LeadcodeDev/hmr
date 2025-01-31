@@ -57,7 +57,7 @@ $ cd /path/to/your/project
 $ hmr
 ```
 
-> The [Glob] library (https://pub.dev/packages/glob) is used to manage the inclusion and exclusion of monitored files.
+> The [Glob](https://pub.dev/packages/glob) library is used to manage the inclusion and exclusion of monitored files.
 
 ## 📦 Manual installation
 
