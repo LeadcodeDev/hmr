@@ -100,6 +100,7 @@ void main(List<String> arguments) async {
   void cleanup() {
     runner.dispose();
     watcher.dispose();
+    stdout.writeAnsi(AsciiControl.lineFeed);
     exit(0);
   }
 

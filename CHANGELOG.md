@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.3
+- Add newline on exit to prevent terminal prompt bad display
+
 ## 1.0.2
 - Enforce clear screen on start
 - Enforce clear screen on reload
