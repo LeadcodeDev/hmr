@@ -36,6 +36,7 @@ void main(List<String> arguments) async {
   final runner = Runner(
     entrypoint: File(path.joinAll(baseEntrypoint)),
     tempDirectory: tempPath,
+    args: arguments,
   );
 
   (File, int)? lastFileChanged;

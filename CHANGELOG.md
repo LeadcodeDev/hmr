@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.0
+- Transfert `hmr [...args]` to `Isolate`
+
 ## 1.0.3
 - Add newline on exit to prevent terminal prompt bad display
 

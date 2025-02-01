@@ -12,12 +12,14 @@ final class Runner implements RunnerContract {
   @override
   final Directory tempDirectory;
 
+  final List<String> args;
+
   late Directory tempPath;
   late File dillFile;
   Isolate? _isolate;
   bool needClearScreen = false;
 
-  Runner({required this.entrypoint, required this.tempDirectory});
+  Runner({required this.entrypoint, required this.tempDirectory, this.args = const []});
 
   @override
   Future<void> run() async {
@@ -68,7 +70,7 @@ final class Runner implements RunnerContract {
   Future<Isolate> _runIsolate(SendPort port) async {
     return Isolate.spawnUri(
       dillFile.uri,
-      [],
+      args,
       port,
     );
   }
