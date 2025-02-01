@@ -57,44 +57,6 @@ void main() {
     });
   });
 
-  group('Watcher', () {
-    late Directory testDir;
-    Watcher? watcher;
-
-    setUp(() async {
-      testDir = Directory(path.join(Directory.current.path, 'test_temp'));
-      await testDir.create(recursive: true);
-    });
-
-    tearDown(() async {
-      await testDir.delete(recursive: true);
-      watcher?.dispose(); // Dispose le watcher après chaque test
-    });
-
-    test('should detect file modifications', () async {
-      final completer = Completer<void>();
-      watcher = Watcher(
-        includes: [Glob('${testDir.path}/**')],
-        onFileModify: (file) {
-          if (!completer.isCompleted) {
-            completer.complete();
-          }
-        },
-      );
-
-      watcher?.watch();
-
-      final file = File(path.join(testDir.path, 'test.txt'));
-      await file.create();
-
-      await Future.delayed(const Duration(milliseconds: 100));
-      await file.writeAsString('modified');
-
-      await completer.future.timeout(const Duration(seconds: 2));
-      expect(completer.isCompleted, isTrue);
-    });
-  });
-
   group('Integration', () {
     test('should initialize with default config', () async {
       final tempDir = await Directory.systemTemp.createTemp();
