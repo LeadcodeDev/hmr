@@ -9,14 +9,13 @@ void main(List<String> arguments) async {
   final pubSpecFile = File('pubspec.yaml');
 
   if (!pubSpecFile.existsSync()) {
-    final List<Sequence> sequences = []
-      ..addAll([
-        SetStyles(Style.foreground(Color.brightRed)),
-        Print('[hmr]'),
-      ])
-      ..add(Print(' pubspec.yaml not found, please use this command in a Dart project.'))
-      ..add(SetStyles.reset)
-      ..add(AsciiControl.lineFeed);
+    final List<Sequence> sequences = [
+      SetStyles(Style.foreground(Color.brightRed)),
+      Print('[hmr]'),
+      Print(' pubspec.yaml not found, please use this command in a Dart project.'),
+      SetStyles.reset,
+      AsciiControl.lineFeed
+    ];
 
     stdout.writeAnsiAll(sequences);
     exit(1);
@@ -95,4 +94,13 @@ void main(List<String> arguments) async {
 
   watcher.watch();
   runner.run();
+
+  void cleanup() {
+    runner.dispose();
+    watcher.dispose();
+    exit(0);
+  }
+
+  ProcessSignal.sigint.watch().listen((_) => cleanup());
+  ProcessSignal.sigterm.watch().listen((_) => cleanup());
 }

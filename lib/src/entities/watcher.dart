@@ -7,14 +7,28 @@ import 'package:hmr/src/contracts/hmr.dart';
 final class Watcher implements WatcherContract {
   StreamSubscription<FileSystemEvent>? _subscription;
 
+  @override
   final List<Glob> includes;
+
+  @override
   final List<Glob> excludes;
 
+  @override
   final FutureOr Function()? onStart;
+
+  @override
   final FutureOr Function(File)? onFileModify;
+
+  @override
   final FutureOr Function(File)? onFileCreate;
+
+  @override
   final FutureOr Function(File)? onFileDelete;
+
+  @override
   final FutureOr Function(File)? onFileMove;
+
+  @override
   final FutureOr Function(int type, File)? onFileChange;
 
   Watcher({
@@ -28,6 +42,7 @@ final class Watcher implements WatcherContract {
     this.onFileModify,
   });
 
+  @override
   void watch() {
     onStart?.call();
 

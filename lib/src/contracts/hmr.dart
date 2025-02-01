@@ -21,6 +21,11 @@ abstract interface class WatcherContract {
   /// The list of files to exclude.
   List<Glob> get includes;
 
+  List<Glob> get excludes;
+
+  /// Emitted when the watcher is started.
+  FutureOr Function()? get onStart;
+
   /// Emitted when the [File] is modified.
   FutureOr Function(File)? get onFileModify;
 

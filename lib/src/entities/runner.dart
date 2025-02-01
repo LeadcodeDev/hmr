@@ -6,7 +6,10 @@ import 'package:mansion/mansion.dart';
 import 'package:path/path.dart' as path;
 
 final class Runner implements RunnerContract {
+  @override
   final File entrypoint;
+
+  @override
   final Directory tempDirectory;
 
   late Directory tempPath;
@@ -16,6 +19,7 @@ final class Runner implements RunnerContract {
 
   Runner({required this.entrypoint, required this.tempDirectory});
 
+  @override
   Future<void> run() async {
     tempPath = await tempDirectory.createTemp('hmr');
     dillFile = File(path.join(tempPath.path, 'app.dill'));
@@ -23,11 +27,12 @@ final class Runner implements RunnerContract {
     await reload();
   }
 
+  @override
   Future<void> reload() async {
     final processResult = await _compile();
     if (processResult.exitCode != 0) {
-      final error = processResult.stderr.toString()
-        .replaceAll('Bad state: Generating kernel failed!', '');
+      final error =
+          processResult.stderr.toString().replaceAll('Bad state: Generating kernel failed!', '');
 
       final List<Sequence> sequences = [
         AsciiControl.lineFeed,
@@ -39,10 +44,7 @@ final class Runner implements RunnerContract {
 
       stderr.writeAnsiAll(sequences);
       stderr.writeln(error);
-      stderr.writeAnsiAll([
-        const CursorPosition.moveUp(2),
-        SetStyles(Style.reset)
-      ]);
+      stderr.writeAnsiAll([const CursorPosition.moveUp(2), SetStyles(Style.reset)]);
 
       return;
     }
@@ -51,6 +53,16 @@ final class Runner implements RunnerContract {
 
     final receivePort = ReceivePort();
     _isolate = await _runIsolate(receivePort.sendPort);
+  }
+
+  Future<void> dispose() async {
+    try {
+      if (await tempPath.exists()) {
+        await tempPath.delete(recursive: true);
+      }
+    } catch (e) {
+      stderr.writeln('❌ Error cleaning temp directory: $e');
+    }
   }
 
   Future<Isolate> _runIsolate(SendPort port) async {

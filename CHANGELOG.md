@@ -2,6 +2,7 @@
 
 ## 1.0.1
 - Prevent the `hmr` command from being run in a non-Dart project
+- Add clean-up of temporary files on exit
 
 ## 1.0.0
 
