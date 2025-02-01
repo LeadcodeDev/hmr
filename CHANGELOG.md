@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.2
+- Enforce clear screen on start
+- Enforce clear screen on reload
+
 ## 1.0.1
 - Prevent the `hmr` command from being run in a non-Dart project
 - Add clean-up of temporary files on exit

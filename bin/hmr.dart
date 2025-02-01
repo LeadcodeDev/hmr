@@ -44,16 +44,16 @@ void main(List<String> arguments) async {
       includes: config?.includes ?? [Glob("**.dart")],
       excludes: config?.excludes ?? [],
       onStart: () {
-        final List<Sequence> sequences = []
-          ..add(const CursorPosition.moveTo(0, 0))
-          ..add(Clear.allAndScrollback)
-          ..addAll([
-            SetStyles(Style.foreground(Color.green)),
-            Print('[hmr]'),
-          ])
-          ..add(Print(' wait to watch changes...'))
-          ..add(SetStyles.reset)
-          ..add(AsciiControl.lineFeed);
+        final List<Sequence> sequences = [
+          const CursorPosition.moveTo(0, 0),
+          Clear.afterCursor,
+          Clear.allAndScrollback,
+          SetStyles(Style.foreground(Color.green)),
+          Print('[hmr]'),
+          Print(' wait to watch changes...'),
+          SetStyles.reset,
+          AsciiControl.lineFeed
+        ];
 
         stdout.writeAnsiAll(sequences);
       },
@@ -69,14 +69,16 @@ void main(List<String> arguments) async {
           _ => 'changed'
         };
 
-        final List<Sequence> sequences = []
-          ..add(const CursorPosition.moveTo(0, 0))
-          ..add(Clear.allAndScrollback)
-          ..add(SetStyles(Style.foreground(Color.green)))
-          ..add(Print('[hmr] $action '))
-          ..add(SetStyles(Style.foreground(Color.brightBlack)))
-          ..add(Print(file.path.replaceFirst('${Directory.current.path}/', '')))
-          ..add(SetStyles.reset);
+        final List<Sequence> sequences = [
+          const CursorPosition.moveTo(0, 0),
+          Clear.afterCursor,
+          Clear.allAndScrollback,
+          SetStyles(Style.foreground(Color.green)),
+          Print('[hmr] $action '),
+          SetStyles(Style.foreground(Color.brightBlack)),
+          Print(file.path.replaceFirst('${Directory.current.path}/', '')),
+          SetStyles.reset
+        ];
 
         if (lastFileChanged?.$2 != 0) {
           sequences.addAll([
