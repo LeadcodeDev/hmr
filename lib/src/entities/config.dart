@@ -1,6 +1,7 @@
 import 'package:glob/glob.dart';
 import 'package:yaml/yaml.dart';
 
+/// The configuration of the HMR.
 final class Config {
   final String? entrypoint;
   final List<Glob>? includes;

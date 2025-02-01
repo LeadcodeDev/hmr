@@ -6,7 +6,23 @@ import 'package:mansion/mansion.dart';
 import 'package:path/path.dart' as path;
 
 void main(List<String> arguments) async {
-  final pubSpecContent = await File('pubspec.yaml').readAsYaml();
+  final pubSpecFile = File('pubspec.yaml');
+
+  if (!pubSpecFile.existsSync()) {
+    final List<Sequence> sequences = []
+      ..addAll([
+        SetStyles(Style.foreground(Color.brightRed)),
+        Print('[hmr]'),
+      ])
+      ..add(Print(' pubspec.yaml not found, please use this command in a Dart project.'))
+      ..add(SetStyles.reset)
+      ..add(AsciiControl.lineFeed);
+
+    stdout.writeAnsiAll(sequences);
+    exit(1);
+  }
+
+  final pubSpecContent = await pubSpecFile.readAsYaml();
   final tempPath = await Directory.systemTemp.createTemp('hmr');
 
   final config = pubSpecContent['hmr'] != null ? Config.of(pubSpecContent['hmr']) : null;

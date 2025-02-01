@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.1
+- Prevent the `hmr` command from being run in a non-Dart project
+
 ## 1.0.0
 
 **Initial Release** - Première publication officielle du package HMR pour Dart
