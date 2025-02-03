@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.2
+- Change `debounce` middleware order
+
 ## 1.3.1
 - Remove `debounce` delay by default
 

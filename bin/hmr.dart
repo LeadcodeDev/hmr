@@ -49,10 +49,10 @@ void main(List<String> arguments) async {
   final watcher = Watcher(
       middlewares: [
         IgnoreMiddleware(['~', '.dart_tool', '.git', '.idea', '.vscode']),
-        ExcludeMiddleware(config?.excludes ?? []),
+        if (config?.excludes case List<Glob> values) ExcludeMiddleware(values),
+        IncludeMiddleware(config?.includes ?? [Glob("**.dart")]),
         if (config?.debounce case int value)
           DebounceMiddleware(Duration(milliseconds: value), dateTime),
-        IncludeMiddleware(config?.includes ?? [Glob("**.dart")]),
       ],
       onStart: () {
         final List<Sequence> sequences = [
