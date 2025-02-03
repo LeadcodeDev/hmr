@@ -3,3 +3,7 @@ export './src/entities/config.dart';
 export './src/entities/runner.dart';
 export './src/entities/watcher.dart';
 export './src/extensions/file.dart';
+export './src/middlewares/debounce.dart';
+export './src/middlewares/exclude.dart';
+export './src/middlewares/ignore.dart';
+export './src/middlewares/include.dart';
