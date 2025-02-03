@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.1
+- Remove `debounce` delay by default
+
 ## 1.3.0
 - Migrate filters to responsibility chain pattern
 

@@ -39,6 +39,7 @@ hmr:
   entrypoint: bin/main.dart
   
   # Delay before recompilation in milliseconds
+  # If not specified, the recompilation will be immediate and you don't have any debounce
   debounce: 5
   
   # Only include files that meet the following criteria
@@ -92,8 +93,7 @@ void main() {
     onStart: () => print('Watching for changes...'),
     middlewares: [
       IgnoreMiddleware(['~', '.dart_tool', '.git', '.idea', '.vscode']),
-      ExcludeMiddleware(config?.excludes ?? []),
-      DebounceMiddleware(5, dateTime),
+      DebounceMiddleware(Duration(milliseconds: 5), dateTime),
       IncludeMiddleware([Glob("**.dart")]),
     ],
     onFileChange: (int eventType, File file) async {

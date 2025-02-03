@@ -50,7 +50,8 @@ void main(List<String> arguments) async {
       middlewares: [
         IgnoreMiddleware(['~', '.dart_tool', '.git', '.idea', '.vscode']),
         ExcludeMiddleware(config?.excludes ?? []),
-        DebounceMiddleware(Duration(milliseconds: config?.debounce ?? 5), dateTime),
+        if (config?.debounce case int value)
+          DebounceMiddleware(Duration(milliseconds: value), dateTime),
         IncludeMiddleware(config?.includes ?? [Glob("**.dart")]),
       ],
       onStart: () {
