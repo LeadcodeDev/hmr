@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.2
+- Remove `ProcessSignal.SIGTERM`
+
 ## 1.1.1
 - Fix entrypoint implicite extension
 

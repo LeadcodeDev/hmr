@@ -106,5 +106,4 @@ void main(List<String> arguments) async {
   }
 
   ProcessSignal.sigint.watch().listen((_) => cleanup());
-  ProcessSignal.sigterm.watch().listen((_) => cleanup());
 }

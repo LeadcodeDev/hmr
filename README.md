@@ -18,7 +18,7 @@ It allows you to :
 | 🔍 Visual feedback       | ANSI colours + change counter                      |
 | 🔄 Error management      | Compiler error messages with highlight             |
 | 📝 Extendable            | Build your own HMR system using event handling     |
-| 📦 Extremely small size  | Package size `< 10ko`                                |
+| 📦 Extremely small size  | Package size `< 10kb`                              |
 
 
 ## Global usage
