@@ -2,6 +2,10 @@ import 'dart:io';
 
 import 'package:glob/glob.dart';
 import 'package:hmr/hmr.dart';
+import 'package:hmr/src/middlewares/debounce.dart';
+import 'package:hmr/src/middlewares/exclude.dart';
+import 'package:hmr/src/middlewares/ignore.dart';
+import 'package:hmr/src/middlewares/include.dart';
 import 'package:mansion/mansion.dart';
 import 'package:path/path.dart' as path;
 
@@ -41,10 +45,14 @@ void main(List<String> arguments) async {
 
   (File, int)? lastFileChanged;
 
+  final dateTime = DateTime.now();
   final watcher = Watcher(
-      includes: config?.includes ?? [Glob("**.dart")],
-      excludes: config?.excludes ?? [],
-      debounce: config?.debounce ?? 5,
+      middlewares: [
+        IgnoreMiddleware(['~', '.dart_tool', '.git', '.idea', '.vscode']),
+        ExcludeMiddleware(config?.excludes ?? []),
+        DebounceMiddleware(Duration(milliseconds: config?.debounce ?? 5), dateTime),
+        IncludeMiddleware(config?.includes ?? [Glob("**.dart")]),
+      ],
       onStart: () {
         final List<Sequence> sequences = [
           const CursorPosition.moveTo(0, 0),

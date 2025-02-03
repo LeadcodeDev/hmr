@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.0
+- Migrate filters to responsibility chain pattern
+
 ## 1.2.0
 - Implement `debounce` delay
 - Ignore `.dart_tool` and IDE directories by default

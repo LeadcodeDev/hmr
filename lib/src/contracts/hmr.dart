@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:glob/glob.dart';
-
 abstract interface class RunnerContract {
   /// The entrypoint file to run.
   File get entrypoint;
@@ -18,14 +16,8 @@ abstract interface class RunnerContract {
 }
 
 abstract interface class WatcherContract {
-  /// The list of files to exclude.
-  List<Glob> get includes;
-
-  /// The list of files to exclude.
-  List<Glob> get excludes;
-
-  /// The debounce time to wait before trigger the event.
-  int get debounce;
+  /// The list of executed middlewares before trigger the watcher emitter.
+  List<MiddlewareWatcher> get middlewares;
 
   /// Emitted when the watcher is started.
   FutureOr Function()? get onStart;
@@ -47,4 +39,11 @@ abstract interface class WatcherContract {
 
   /// Emitted when the watcher is started.
   void watch();
+}
+
+/// The next function to execute the next middleware.
+typedef NextFn = Function();
+abstract interface class MiddlewareWatcher {
+  /// Handle the [FileSystemEvent] and execute the next middleware.
+  void handle(FileSystemEvent event, NextFn next);
 }

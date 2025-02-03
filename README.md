@@ -89,8 +89,13 @@ void main() {
     ));
 
   final watcher = Watcher(
-    includes: [Glob("**.dart")],
     onStart: () => print('Watching for changes...'),
+    middlewares: [
+      IgnoreMiddleware(['~', '.dart_tool', '.git', '.idea', '.vscode']),
+      ExcludeMiddleware(config?.excludes ?? []),
+      DebounceMiddleware(5, dateTime),
+      IncludeMiddleware([Glob("**.dart")]),
+    ],
     onFileChange: (int eventType, File file) async {
       final action = switch (eventType) {
         FileSystemEvent.create => 'created',
