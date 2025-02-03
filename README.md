@@ -16,6 +16,7 @@ It allows you to :
 | ⚡ Instant reloading      | Instant code update                                |
 | 🎯 Targeted surveillance | Filtering by glob patterns (`includes`/`excludes`) |
 | 🔍 Visual feedback       | ANSI colours + change counter                      |
+| ⏱️ Debounce mechanism    | Delayed recompilation                              |
 | 🔄 Error management      | Compiler error messages with highlight             |
 | 📝 Extendable            | Build your own HMR system using event handling     |
 | 📦 Extremely small size  | Package size `< 10kb`                              |
@@ -36,7 +37,10 @@ In your `pubspec.yaml`, you can add an additional configuration to the `hmr`.
 hmr:
   # Change the location of the input file
   entrypoint: bin/main.dart
-
+  
+  # Delay before recompilation in milliseconds
+  debounce: 5
+  
   # Only include files that meet the following criteria
   includes:
     - '**/*.txt'

@@ -7,11 +7,16 @@ import 'package:hmr/src/contracts/hmr.dart';
 final class Watcher implements WatcherContract {
   StreamSubscription<FileSystemEvent>? _subscription;
 
+  DateTime? _dateTime = DateTime.now();
+
   @override
   final List<Glob> includes;
 
   @override
   final List<Glob> excludes;
+
+  @override
+  final int debounce;
 
   @override
   final FutureOr Function()? onStart;
@@ -34,6 +39,7 @@ final class Watcher implements WatcherContract {
   Watcher({
     this.excludes = const [],
     this.includes = const [],
+    this.debounce = 5,
     this.onStart,
     this.onFileChange,
     this.onFileCreate,
@@ -47,7 +53,17 @@ final class Watcher implements WatcherContract {
     onStart?.call();
 
     _subscription = Directory.current.watch(recursive: true).listen((event) {
-      if (event.path.endsWith('~')) {
+      if (_dateTime case DateTime value
+          when DateTime.now().difference(value) < Duration(milliseconds: debounce)) {
+        return;
+      }
+
+      final ignoredFiles = event.path.endsWith('~') ||
+          event.path.contains('.idea') ||
+          event.path.contains('.git') ||
+          event.path.contains('.dart_tool');
+
+      if (ignoredFiles) {
         return;
       }
 
@@ -72,6 +88,7 @@ final class Watcher implements WatcherContract {
         }
 
         onFileChange?.call(event.type, File(event.path));
+        _dateTime = DateTime.now();
       }
     });
   }

@@ -4,11 +4,13 @@ import 'package:yaml/yaml.dart';
 /// The configuration of the HMR.
 final class Config {
   final String? entrypoint;
+  final int? debounce;
   final List<Glob>? includes;
   final List<Glob>? excludes;
 
   Config({
     this.entrypoint,
+    this.debounce,
     this.includes,
     this.excludes,
   });
@@ -21,6 +23,7 @@ final class Config {
 
     return Config(
       entrypoint: payload['entrypoint'],
+      debounce: payload['debounce'],
       includes: parseGlobList(payload['includes']),
       excludes: parseGlobList(payload['excludes']),
     );

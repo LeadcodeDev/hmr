@@ -44,6 +44,7 @@ void main(List<String> arguments) async {
   final watcher = Watcher(
       includes: config?.includes ?? [Glob("**.dart")],
       excludes: config?.excludes ?? [],
+      debounce: config?.debounce ?? 5,
       onStart: () {
         final List<Sequence> sequences = [
           const CursorPosition.moveTo(0, 0),

@@ -21,7 +21,11 @@ abstract interface class WatcherContract {
   /// The list of files to exclude.
   List<Glob> get includes;
 
+  /// The list of files to exclude.
   List<Glob> get excludes;
+
+  /// The debounce time to wait before trigger the event.
+  int get debounce;
 
   /// Emitted when the watcher is started.
   FutureOr Function()? get onStart;

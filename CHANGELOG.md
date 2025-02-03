@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0
+- Implement `debounce` delay
+- Ignore `.dart_tool` and IDE directories by default
+
 ## 1.1.2
 - Remove `ProcessSignal.SIGTERM`
 
