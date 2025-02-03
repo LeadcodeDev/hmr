@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.1
+- Fix entrypoint implicite extension
+
 ## 1.1.0
 - Transfert `hmr [...args]` to `Isolate`
 

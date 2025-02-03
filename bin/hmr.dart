@@ -30,7 +30,7 @@ void main(List<String> arguments) async {
   if (config?.entrypoint case final String value) {
     baseEntrypoint.add(value);
   } else {
-    baseEntrypoint.addAll(['bin', pubSpecContent['name']]);
+    baseEntrypoint.addAll(['bin', '${pubSpecContent['name']}.dart']);
   }
 
   final runner = Runner(
