@@ -12,19 +12,37 @@ final class Runner implements RunnerContract {
   @override
   final Directory tempDirectory;
 
+  @override
+  final String isolateName;
+
   final List<String> args;
 
-  late Directory tempPath;
   late File dillFile;
   Isolate? _isolate;
   bool needClearScreen = false;
 
-  Runner({required this.entrypoint, required this.tempDirectory, this.args = const []});
+  ReceivePort? _receivePort;
+  SendPort? _sendPort;
+  Stream<dynamic>? _broadcast;
+
+  Runner(
+      {required this.entrypoint,
+      required this.tempDirectory,
+      this.isolateName = 'hmr',
+      this.args = const []});
 
   @override
   Future<void> run() async {
-    tempPath = await tempDirectory.createTemp('hmr');
-    dillFile = File(path.join(tempPath.path, 'app.dill'));
+    dillFile = File(path.join(tempDirectory.path, 'app.dill'));
+
+    // Listen for app shutdown events
+    ProcessSignal.sigint.watch().listen((signal) {
+      dispose().then((_) => exit(0));
+    });
+
+    ProcessSignal.sigterm.watch().listen((signal) {
+      dispose().then((_) => exit(0));
+    });
 
     await reload();
   }
@@ -33,8 +51,9 @@ final class Runner implements RunnerContract {
   Future<void> reload() async {
     final processResult = await _compile();
     if (processResult.exitCode != 0) {
-      final error =
-          processResult.stderr.toString().replaceAll('Bad state: Generating kernel failed!', '');
+      final error = processResult.stderr
+          .toString()
+          .replaceAll('Bad state: Generating kernel failed!', '');
 
       final List<Sequence> sequences = [
         AsciiControl.lineFeed,
@@ -46,21 +65,24 @@ final class Runner implements RunnerContract {
 
       stderr.writeAnsiAll(sequences);
       stderr.writeln(error);
-      stderr.writeAnsiAll([const CursorPosition.moveUp(2), SetStyles(Style.reset)]);
+      stderr.writeAnsiAll(
+          [const CursorPosition.moveUp(2), SetStyles(Style.reset)]);
 
       return;
     }
 
     _isolate?.kill(priority: Isolate.immediate);
 
-    final receivePort = ReceivePort();
-    _isolate = await _runIsolate(receivePort.sendPort);
+    _receivePort = ReceivePort();
+    _isolate = await _runIsolate(_receivePort!.sendPort);
+    _broadcast = _receivePort!.asBroadcastStream();
+    _sendPort = await _broadcast?.first;
   }
 
   Future<void> dispose() async {
     try {
-      if (await tempPath.exists()) {
-        await tempPath.delete(recursive: true);
+      if (await tempDirectory.exists()) {
+        await tempDirectory.delete(recursive: true);
       }
     } catch (e) {
       stderr.writeln('❌ Error cleaning temp directory: $e');
@@ -72,6 +94,7 @@ final class Runner implements RunnerContract {
       dillFile.uri,
       args,
       port,
+      debugName: isolateName,
     );
   }
 
@@ -82,5 +105,29 @@ final class Runner implements RunnerContract {
       args,
       workingDirectory: Directory.current.path,
     );
+  }
+
+  @override
+  Future<void> send(dynamic message) async {
+    if (_sendPort == null) {
+      final List<Sequence> sequences = [
+        AsciiControl.lineFeed,
+        SetStyles(Style.foreground(Color.red)),
+        Print('Please send port from Isolate to parent'),
+        AsciiControl.lineFeed,
+        AsciiControl.lineFeed,
+        AsciiControl.lineFeed,
+      ];
+
+      stderr.writeAnsiAll(sequences);
+      return;
+    }
+
+    _sendPort!.send(message);
+  }
+
+  @override
+  void listen(Function(dynamic message) handler) {
+    _broadcast?.listen(handler);
   }
 }

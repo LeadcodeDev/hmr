@@ -5,6 +5,9 @@ abstract interface class RunnerContract {
   /// The entrypoint file to run.
   File get entrypoint;
 
+  /// The [Isolate] name.
+  String get isolateName;
+
   /// The temporary directory to store the compiled files.
   Directory get tempDirectory;
 
@@ -13,6 +16,12 @@ abstract interface class RunnerContract {
 
   /// Reload the entrypoint file.
   Future<void> reload();
+
+  /// Send a message to the isolate.
+  Future<void> send(dynamic message);
+
+  /// Listen for messages from the isolate.
+  void listen(Function(dynamic message) handler);
 }
 
 abstract interface class WatcherContract {
@@ -43,6 +52,7 @@ abstract interface class WatcherContract {
 
 /// The next function to execute the next middleware.
 typedef NextFn = Function();
+
 abstract interface class MiddlewareWatcher {
   /// Handle the [FileSystemEvent] and execute the next middleware.
   void handle(FileSystemEvent event, NextFn next);

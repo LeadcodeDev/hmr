@@ -1,6 +1,6 @@
 name: hmr
 description: Hot Module Replacement system specially designed for command-line Dart applications.
-version: 1.3.2
+version: 1.4.0
 repository: https://github.com/LeadcodeDev/hmr
 executables:
   hmr: hmr

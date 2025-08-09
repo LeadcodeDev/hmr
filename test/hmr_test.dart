@@ -1,7 +1,5 @@
-import 'dart:async';
 import 'dart:io';
 
-import 'package:glob/glob.dart';
 import 'package:hmr/hmr.dart';
 import 'package:path/path.dart' as path;
 import 'package:test/test.dart';
@@ -52,8 +50,9 @@ void main() {
 
       await runner.run();
 
-      expect(runner.tempPath.existsSync(), isTrue);
-      expect(runner.dillFile.existsSync(), isTrue); // Not created until compilation
+      expect(runner.tempDirectory.existsSync(), isTrue);
+      expect(runner.dillFile.existsSync(),
+          isTrue); // Not created until compilation
     });
   });
 
