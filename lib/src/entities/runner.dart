@@ -36,14 +36,8 @@ final class Runner implements RunnerContract {
     dillFile = File(path.join(tempDirectory.path, 'app.dill'));
 
     // Listen for app shutdown events, but disable this feature on windows
-    if (!Platform.isWindows) {
-      ProcessSignal.sigint.watch().listen((signal) {
-        dispose().then((_) => exit(0));
-      });
-
-      ProcessSignal.sigterm.watch().listen((signal) {
-        dispose().then((_) => exit(0));
-      });
+    for (final sig in [ProcessSignal.sigint, if (!Platform.isWindows) ProcessSignal.sigterm]) {
+      sig.watch().listen((_) => exit(0));
     }
 
     await reload();
