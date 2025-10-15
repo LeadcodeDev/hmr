@@ -2,7 +2,7 @@
 
 ## 1.4.1
 
-- remove `SIGINT` and `SIGTERM` on windows
+- remove `SIGTERM` on windows
 
 ## 1.4.0
 
