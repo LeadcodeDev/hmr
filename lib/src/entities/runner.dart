@@ -27,22 +27,18 @@ final class Runner implements RunnerContract {
 
   Runner(
       {required this.entrypoint,
-      required this.tempDirectory,
-      this.isolateName = 'hmr',
-      this.args = const []});
+        required this.tempDirectory,
+        this.isolateName = 'hmr',
+        this.args = const []});
 
   @override
   Future<void> run() async {
     dillFile = File(path.join(tempDirectory.path, 'app.dill'));
 
-    // Listen for app shutdown events
-    ProcessSignal.sigint.watch().listen((signal) {
-      dispose().then((_) => exit(0));
-    });
-
-    ProcessSignal.sigterm.watch().listen((signal) {
-      dispose().then((_) => exit(0));
-    });
+    // Listen for app shutdown events, but disable this feature on windows
+    for (final sig in [ProcessSignal.sigint, if (!Platform.isWindows) ProcessSignal.sigterm]) {
+      sig.watch().listen((_) => exit(0));
+    }
 
     await reload();
   }
