@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.1
+
+- remove `SIGINT` and `SIGTERM` on windows
+
 ## 1.4.0
 
 - Expose `send` and `listen` methods
