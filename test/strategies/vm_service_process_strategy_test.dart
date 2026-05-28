@@ -25,6 +25,12 @@ class _FakeProcess implements Process {
     return true;
   }
 
+  /// Test helper: simulates a non-zero exit (e.g. uncaught exception in user
+  /// code) without going through kill().
+  void crashWith(int code) {
+    if (!_exitCompleter.isCompleted) _exitCompleter.complete(code);
+  }
+
   @override
   Future<int> get exitCode => _exitCompleter.future;
 
@@ -180,6 +186,68 @@ void main() {
         isA<RunnerStopped>(),
       ]),
     );
+  });
+
+  test('emits ProcessCrashed with the complete stack trace on non-zero exit',
+      () async {
+    final crashProc = _FakeProcess();
+    final stderrCtl = StreamController<String>();
+
+    final strategy = VmServiceProcessStrategy(
+      entrypoint: entrypoint,
+      launcher: (_, __) async => (
+        crashProc,
+        _FakeVmService(const []),
+        stderrCtl.stream,
+      ),
+    );
+
+    final events = <RunnerEvent>[];
+    strategy.events.listen(events.add);
+
+    await strategy.start();
+
+    // Simulate the child writing an uncaught exception with a full trace
+    // before exiting with a non-zero code.
+    stderrCtl.add('Unhandled exception:');
+    stderrCtl.add('StateError: simulated crash');
+    stderrCtl.add('#0      MyService.connect (file:///app/lib/svc.dart:42:5)');
+    stderrCtl.add('#1      main (file:///app/bin/main.dart:10:3)');
+    stderrCtl.add('#2      _delayEntrypointInvocation.<anonymous closure>');
+    await stderrCtl.close();
+    crashProc.crashWith(255);
+
+    // Wait for the watcher's debounced emit.
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+
+    final crashes = events.whereType<ProcessCrashed>().toList();
+    expect(crashes, hasLength(1));
+    expect(crashes.single.exitCode, 255);
+    final trace = crashes.single.stderr;
+    // Every line must survive verbatim — no truncation.
+    expect(trace, contains('Unhandled exception:'));
+    expect(trace, contains('StateError: simulated crash'));
+    expect(trace, contains('#0      MyService.connect'));
+    expect(trace, contains('#1      main'));
+    expect(trace, contains('#2      _delayEntrypointInvocation'));
+
+    await strategy.dispose();
+  });
+
+  test('killed process (exit 0 via kill) does NOT emit ProcessCrashed',
+      () async {
+    final strategy = VmServiceProcessStrategy(
+      entrypoint: entrypoint,
+      launcher: (_, __) async => _fakeLaunchResult(_FakeVmService(const [])),
+    );
+
+    final events = <RunnerEvent>[];
+    strategy.events.listen(events.add);
+
+    await strategy.start();
+    await strategy.dispose();
+
+    expect(events.whereType<ProcessCrashed>(), isEmpty);
   });
 
   test('dispose emits RunnerStopped', () async {

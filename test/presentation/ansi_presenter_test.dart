@@ -70,6 +70,21 @@ void main() {
     expect(sink.output, isEmpty);
   });
 
+  test('ProcessCrashed shows exit code, full stderr, and the restart hint',
+      () {
+    final trace = 'Unhandled exception:\nStateError: boom\n'
+        '#0      foo (file:///x.dart:1:1)\n'
+        '#1      bar (file:///y.dart:2:2)';
+    final lines = _captureLines([ProcessCrashed(ts, 137, trace)]);
+    final joined = lines.join('\n');
+    expect(joined, contains('exited with code 137'));
+    // Every stack frame survives.
+    expect(joined, contains('StateError: boom'));
+    expect(joined, contains('#0      foo'));
+    expect(joined, contains('#1      bar'));
+    expect(joined, contains('press R to restart'));
+  });
+
   test('each reload cycle writes at least two output blocks', () {
     final lines = _captureLines([
       RunnerStarted(ts),
