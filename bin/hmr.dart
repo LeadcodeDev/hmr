@@ -1,12 +1,44 @@
 import 'dart:io';
 
+import 'package:args/args.dart';
 import 'package:glob/glob.dart';
 import 'package:hmr/hmr.dart';
 import 'package:path/path.dart' as path;
 
-Future<void> main(List<String> arguments) async {
-  final pubSpecFile = File('pubspec.yaml');
+final _argParser = ArgParser()
+  ..addOption(
+    'strategy',
+    abbr: 's',
+    allowed: ['restart', 'vm'],
+    defaultsTo: 'restart',
+    help: 'Reload strategy: "restart" (isolate restart) or "vm" (hot reload via VM service).',
+  )
+  ..addFlag(
+    'rescan-extension',
+    defaultsTo: false,
+    help: 'Register ext.hmr.rescan service extension so IDEs can trigger reloads.',
+  )
+  ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this help message.');
 
+Future<void> main(List<String> arguments) async {
+  final ArgResults args;
+  try {
+    args = _argParser.parse(arguments);
+  } on FormatException catch (e) {
+    stderr.writeln('[hmr] ${e.message}');
+    stderr.writeln(_argParser.usage);
+    exit(1);
+  }
+
+  if (args['help'] as bool) {
+    stdout.writeln('Usage: hmr [options] [-- app-args...]');
+    stdout.writeln(_argParser.usage);
+    exit(0);
+  }
+
+  final appArgs = args.rest;
+
+  final pubSpecFile = File('pubspec.yaml');
   if (!pubSpecFile.existsSync()) {
     stderr.writeln('[hmr] pubspec.yaml not found, please run inside a Dart project.');
     exit(1);
@@ -31,12 +63,23 @@ Future<void> main(List<String> arguments) async {
     entryParts.addAll(['bin', '${pubSpec['name']}.dart']);
   }
 
-  final tempDir = await Directory.systemTemp.createTemp('hmr');
-  final strategy = IsolateRestartStrategy(
-    entrypoint: File(path.joinAll(entryParts)),
-    tempDirectory: tempDir,
-    args: arguments,
-  );
+  final entrypoint = File(path.joinAll(entryParts));
+
+  final RunStrategy strategy;
+  switch (args['strategy'] as String) {
+    case 'vm':
+      strategy = VmServiceReloadStrategy(
+        entrypoint: entrypoint,
+        args: appArgs,
+      );
+    case _:
+      final tempDir = await Directory.systemTemp.createTemp('hmr');
+      strategy = IsolateRestartStrategy(
+        entrypoint: entrypoint,
+        tempDirectory: tempDir,
+        args: appArgs,
+      );
+  }
 
   final orchestrator = ReloadOrchestrator(
     strategy: strategy,
