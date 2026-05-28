@@ -36,25 +36,23 @@ Future<(Process, VmService, Stream<String>)> launchWithVmService(
   }
 
   // Dart 3.8+ prints the VM service URI to stdout; earlier versions used
-  // stderr. Scan both so we handle either runtime.
-  //
-  // stdout is single-subscription, so broadcast it to allow two consumers:
-  // one that forwards raw bytes to the parent (app output visible in terminal)
-  // and one that scans lines for the service URI.
-  final stdoutBroadcast = process.stdout.asBroadcastStream();
-  stdoutBroadcast.listen(stdout.add);
-  stdoutBroadcast
+  // stderr. Scan both so we handle either runtime. VM service info lines
+  // are suppressed from terminal output since HMR owns the process lifecycle.
+  process.stdout
       .transform(utf8.decoder)
       .transform(const LineSplitter())
-      .listen(tryComplete);
+      .listen((line) {
+        tryComplete(line);
+        if (!_isVmServiceLine(line)) stdout.writeln(line);
+      });
 
   process.stderr
       .transform(utf8.decoder)
       .transform(const LineSplitter())
       .listen(
         (line) {
-          stderrController.add(line);
           tryComplete(line);
+          if (!_isVmServiceLine(line)) stderrController.add(line);
         },
         onError: (Object e, StackTrace st) {
           stderrController.addError(e, st);
@@ -75,6 +73,10 @@ Future<(Process, VmService, Stream<String>)> launchWithVmService(
 
   return (process, service, stderrController.stream);
 }
+
+bool _isVmServiceLine(String line) =>
+    line.startsWith('The Dart VM service is listening on ') ||
+    line.startsWith('The Dart DevTools debugger and profiler is available at:');
 
 String wsUriFromHttpUri(String httpUri) {
   final uri = Uri.parse(httpUri.trim());
