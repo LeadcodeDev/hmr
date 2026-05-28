@@ -103,12 +103,13 @@ void main(List<String> arguments) async {
   watcher.watch();
   runner.run();
 
-  void cleanup() {
-    runner.dispose();
+  Future<void> cleanup() async {
+    await runner.dispose();
     watcher.dispose();
     stdout.writeAnsi(AsciiControl.lineFeed);
     exit(0);
   }
 
   ProcessSignal.sigint.watch().listen((_) => cleanup());
+  ProcessSignal.sigterm.watch().listen((_) => cleanup());
 }

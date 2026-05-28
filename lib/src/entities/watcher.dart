@@ -60,7 +60,7 @@ final class Watcher implements WatcherContract {
             case FileSystemEvent.move:
               onFileMove?.call(File(event.path));
             default:
-              () => throw 'Unknown event type: ${event.type}';
+              throw StateError('Unknown event type: ${event.type}');
           }
 
           onFileChange?.call(event.type, File(event.path));
@@ -71,6 +71,7 @@ final class Watcher implements WatcherContract {
     });
   }
 
+  @override
   void dispose() {
     _subscription?.cancel();
   }

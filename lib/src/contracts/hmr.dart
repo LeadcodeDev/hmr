@@ -48,6 +48,9 @@ abstract interface class WatcherContract {
 
   /// Emitted when the watcher is started.
   void watch();
+
+  /// Stops watching and releases resources.
+  void dispose();
 }
 
 /// The next function to execute the next middleware.
