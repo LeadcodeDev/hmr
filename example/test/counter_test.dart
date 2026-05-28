@@ -1,4 +1,4 @@
-import 'package:impl/counter.dart';
+import 'package:example/counter.dart';
 import 'package:test/test.dart';
 
 void main() {

@@ -1,7 +1,7 @@
-name: impl
-description: A sample command-line application.
+name: example
+description: Example CLI app demonstrating hmr hot reload.
 version: 1.0.0
-# repository: https://github.com/my_org/my_repo
+publish_to: none
 
 hmr:
   entrypoint: bin/main.dart
@@ -12,7 +12,6 @@ hmr:
 environment:
   sdk: ^3.5.3
 
-# Add regular dependencies here.
 dependencies:
   hmr:
     path: ..

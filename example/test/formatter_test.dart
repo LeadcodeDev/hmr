@@ -1,4 +1,4 @@
-import 'package:impl/formatter.dart';
+import 'package:example/formatter.dart';
 import 'package:test/test.dart';
 
 void main() {

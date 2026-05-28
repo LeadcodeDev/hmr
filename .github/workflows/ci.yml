@@ -32,8 +32,8 @@ jobs:
           sdk: stable
       - name: Install hmr dependencies
         run: dart pub get
-      - name: Install impl dependencies
+      - name: Install example dependencies
         run: dart pub get
-        working-directory: impl
+        working-directory: example
       - name: E2E tests
         run: dart test --tags=e2e

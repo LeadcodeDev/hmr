@@ -42,7 +42,7 @@ void main(List<String> args) {
   final revert = args.contains('--revert');
   final file = File(_path);
   if (!file.existsSync()) {
-    stderr.writeln('Run this script from the impl/ directory.');
+    stderr.writeln('Run this script from the example/ directory.');
     exit(1);
   }
 
