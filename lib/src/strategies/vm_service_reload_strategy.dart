@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:path/path.dart' as p;
 import 'package:vm_service/vm_service.dart';
 
 import '../domain/events.dart';
@@ -91,6 +92,12 @@ class VmServiceReloadStrategy implements RunStrategy {
     if (service == null || isolateId == null) {
       _events.add(CompileFailed(DateTime.now(), 'VM service not connected'));
       return ReloadOutcome.failed;
+    }
+
+    // Entry point changes require a full restart — main() won't re-execute
+    // after a hot reload so any initialisation changes would be invisible.
+    if (p.canonicalize(trigger) == p.canonicalize(entrypoint.path)) {
+      return await _restartAfterCrash(sw);
     }
 
     try {
