@@ -41,14 +41,13 @@ void main(List<String> arguments) async {
 
   (File, int)? lastFileChanged;
 
-  final dateTime = DateTime.now();
   final watcher = Watcher(
       middlewares: [
         IgnoreMiddleware(['~', '.dart_tool', '.git', '.idea', '.vscode']),
         if (config?.excludes case List<Glob> values) ExcludeMiddleware(values),
         IncludeMiddleware(config?.includes ?? [Glob("**.dart")]),
         if (config?.debounce case int value)
-          DebounceMiddleware(Duration(milliseconds: value), dateTime),
+          DebounceMiddleware(Duration(milliseconds: value)),
       ],
       onStart: () {
         final List<Sequence> sequences = [
