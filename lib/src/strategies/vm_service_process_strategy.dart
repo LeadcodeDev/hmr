@@ -92,6 +92,22 @@ class VmServiceProcessStrategy implements RunStrategy {
     }
   }
 
+  @override
+  Future<ReloadOutcome> restart({String trigger = 'manual'}) async {
+    final previous = _inFlight ?? Future.value();
+    final completer = Completer<void>();
+    _inFlight = completer.future;
+    try {
+      await previous;
+      _emit(CompileStarted(DateTime.now(), trigger));
+      final sw = Stopwatch()..start();
+      return await _restartAfterCrash(sw);
+    } finally {
+      completer.complete();
+      if (identical(_inFlight, completer.future)) _inFlight = null;
+    }
+  }
+
   Future<ReloadOutcome> _doReload(String trigger) async {
     _emit(CompileStarted(DateTime.now(), trigger));
     final sw = Stopwatch()..start();

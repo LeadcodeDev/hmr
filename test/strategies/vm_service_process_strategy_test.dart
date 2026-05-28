@@ -149,6 +149,39 @@ void main() {
     );
   });
 
+  test('restart() forces hotRestart and relaunches the child', () async {
+    int launchCount = 0;
+
+    final strategy = VmServiceProcessStrategy(
+      entrypoint: entrypoint,
+      launcher: (_, __) async {
+        launchCount++;
+        return _fakeLaunchResult(_FakeVmService(const []));
+      },
+    );
+
+    final events = <RunnerEvent>[];
+    strategy.events.listen(events.add);
+
+    await strategy.start();
+    final outcome = await strategy.restart(trigger: 'hotkey:R');
+    await strategy.dispose();
+
+    expect(launchCount, 2, reason: 'restart should relaunch');
+    expect(outcome, ReloadOutcome.fallbackUsed);
+    expect(
+      events,
+      containsAllInOrder([
+        isA<RunnerStarted>(),
+        isA<CompileStarted>().having((e) => e.trigger, 'trigger', 'hotkey:R'),
+        isA<CompileSucceeded>(),
+        isA<ReloadSucceeded>()
+            .having((e) => e.kind, 'kind', ReloadKind.hotRestart),
+        isA<RunnerStopped>(),
+      ]),
+    );
+  });
+
   test('dispose emits RunnerStopped', () async {
     final strategy = VmServiceProcessStrategy(
       entrypoint: entrypoint,
