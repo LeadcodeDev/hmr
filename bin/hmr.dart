@@ -88,13 +88,25 @@ Future<void> main(List<String> arguments) async {
       );
   }
 
+  // Glob.matches() canonicalises the input path to absolute before matching.
+  // Relative patterns like **/*.dart compile to regexes that cannot match an
+  // absolute path (they expect a non-'/' first character). Making the patterns
+  // absolute here ensures the compiled regex anchors at the project root and
+  // matches the canonicalised paths correctly.
+  final root = Directory.current.path;
+  List<Glob> absoluteGlobs(List<Glob>? globs, String fallback) =>
+      (globs ?? [Glob(fallback)])
+          .map((g) => Glob(path.join(root, g.pattern)))
+          .toList();
+
   final orchestrator = ReloadOrchestrator(
     strategy: strategy,
-    watcher: FileWatcher(Directory.current.path),
+    watcher: FileWatcher(root),
     filters: [
       ignoreSegment(const ['~', '.git', '.dart_tool', '.idea', '.vscode']),
-      if (config?.excludes case final List<Glob> ex) excludeGlobs(ex),
-      includeGlobs(config?.includes ?? [Glob('**.dart')]),
+      if (config?.excludes case final List<Glob> ex)
+        excludeGlobs(absoluteGlobs(ex, '**')),
+      includeGlobs(absoluteGlobs(config?.includes, '**.dart')),
     ],
     debounce: Duration(milliseconds: config?.debounce ?? 0),
   );
