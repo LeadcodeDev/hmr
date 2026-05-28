@@ -12,6 +12,7 @@ class AnsiPresenter implements Presenter {
   final IOSink _out;
 
   StreamSubscription<RunnerEvent>? _sub;
+  String? _pendingHeader;
 
   AnsiPresenter({String? cwd, IOSink? out})
       : cwd = cwd ?? Directory.current.path,
@@ -30,10 +31,15 @@ class AnsiPresenter implements Presenter {
       case RunnerStarted():
         _header('wait to watch changes...', Color.green);
       case CompileStarted(:final trigger):
-        _header('reloading ${_rel(trigger)}', Color.green);
+        _pendingHeader = 'reloading ${_rel(trigger)}';
       case CompileSucceeded(:final elapsed):
+        if (_pendingHeader != null) {
+          _header(_pendingHeader!, Color.green);
+          _pendingHeader = null;
+        }
         _footer('compiled in ${elapsed.inMilliseconds}ms', Color.brightBlack);
       case CompileFailed(:final stderr):
+        _pendingHeader = null;
         _header('compilation failed', Color.red);
         _out.writeln(stderr);
       case ReloadSucceeded(:final kind):
