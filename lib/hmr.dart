@@ -1,3 +1,4 @@
+export 'src/controllers/hot_key_controller.dart';
 export 'src/domain/config.dart';
 export 'src/domain/entrypoint_resolver.dart';
 export 'src/domain/events.dart';
