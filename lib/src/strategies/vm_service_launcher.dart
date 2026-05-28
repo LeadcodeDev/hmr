@@ -17,7 +17,6 @@ Future<(Process, VmService, Stream<String>)> launchWithVmService(
     'dart',
     [
       '--enable-vm-service=0',
-      '--disable-service-auth-codes',
       entrypoint.path,
       ...args,
     ],
