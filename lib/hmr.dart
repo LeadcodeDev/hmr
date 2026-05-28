@@ -9,3 +9,4 @@ export 'src/pipeline/filters.dart';
 export 'src/presentation/ansi_presenter.dart';
 export 'src/strategies/isolate_restart_strategy.dart';
 export 'src/strategies/run_strategy.dart';
+export 'src/strategies/vm_service_launcher.dart';
