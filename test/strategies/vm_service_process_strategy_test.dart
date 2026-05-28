@@ -50,6 +50,11 @@ class _FakeVmService extends VmService {
   }
 
   @override
+  Future<Isolate> getIsolate(String isolateId) async {
+    return Isolate(extensionRPCs: const []);
+  }
+
+  @override
   Future<ReloadReport> reloadSources(
     String isolateId, {
     bool? force,
