@@ -121,11 +121,15 @@ class VmServiceReloadStrategy implements RunStrategy {
   }
 
   Future<void> _killProcess() async {
-    await _service?.dispose();
+    try {
+      await _service?.dispose();
+    } catch (_) {}
     _service = null;
     _mainIsolateId = null;
     _process?.kill(ProcessSignal.sigterm);
-    await _process?.exitCode;
+    try {
+      await _process?.exitCode;
+    } catch (_) {}
     _process = null;
   }
 
