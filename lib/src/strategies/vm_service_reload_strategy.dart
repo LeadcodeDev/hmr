@@ -82,7 +82,7 @@ class VmServiceReloadStrategy implements RunStrategy {
     }
 
     try {
-      final report = await service.reloadSources(isolateId);
+      final report = await service.reloadSources(isolateId, force: true);
       if (report.success ?? false) {
         _events.add(CompileSucceeded(DateTime.now(), sw.elapsed));
         _events.add(ReloadSucceeded(DateTime.now(), ReloadKind.hotReload));
@@ -90,6 +90,11 @@ class VmServiceReloadStrategy implements RunStrategy {
       }
 
       // Shape change — hot reload not possible, fall back to full restart
+      final notices = report.json?['notices'];
+      final reason = notices is List
+          ? notices.map((n) => (n as Map?)?['message'] ?? n).join('; ')
+          : 'no notices';
+      stderr.writeln('[hmr] hot-reload rejected ($reason) — restarting');
       await _killProcess();
       await _launch();
       _events.add(CompileSucceeded(DateTime.now(), sw.elapsed));
