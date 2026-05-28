@@ -118,7 +118,13 @@ Future<void> main(List<String> arguments) async {
     presenter = AnsiPresenter()..attach(orchestrator.events);
   }
 
+  final hotKeys = HotKeyController();
+
+  var shuttingDown = false;
   Future<void> cleanup() async {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    await hotKeys.stop();
     await orchestrator.stop();
     await presenter.dispose();
     exit(0);
@@ -126,6 +132,25 @@ Future<void> main(List<String> arguments) async {
 
   ProcessSignal.sigint.watch().listen((_) => cleanup());
   ProcessSignal.sigterm.watch().listen((_) => cleanup());
+
+  hotKeys.keys.listen((key) {
+    switch (key) {
+      case HotKey.reload:
+        orchestrator.reload(trigger: 'hotkey:r');
+      case HotKey.restart:
+        orchestrator.restart(trigger: 'hotkey:R');
+      case HotKey.quit:
+      case HotKey.ctrlC:
+        cleanup();
+      case HotKey.help:
+        stderr.writeln(
+          '[hmr] r: reload | R: restart | c: clear | q: quit | h: help',
+        );
+      case HotKey.clear:
+        stdout.write('\x1B[2J\x1B[H');
+    }
+  });
+  hotKeys.start();
 
   await orchestrator.start();
 }

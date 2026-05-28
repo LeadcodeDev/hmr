@@ -11,6 +11,7 @@ import 'package:test/test.dart';
 class _FakeStrategy implements RunStrategy {
   final _events = StreamController<RunnerEvent>.broadcast();
   final reloads = <String>[];
+  final restarts = <String>[];
 
   @override
   Stream<RunnerEvent> get events => _events.stream;
@@ -22,6 +23,12 @@ class _FakeStrategy implements RunStrategy {
   Future<ReloadOutcome> reload({String trigger = 'manual'}) async {
     reloads.add(trigger);
     return ReloadOutcome.ok;
+  }
+
+  @override
+  Future<ReloadOutcome> restart({String trigger = 'manual'}) async {
+    restarts.add(trigger);
+    return ReloadOutcome.fallbackUsed;
   }
 
   @override
@@ -54,5 +61,22 @@ void main() {
     await orch.stop();
     expect(strat.reloads, isNotEmpty);
     expect(strat.reloads.first, contains('a.dart'));
+  });
+
+  test('reload() and restart() proxy through to the strategy', () async {
+    final strat = _FakeStrategy();
+    final dir = await Directory.systemTemp.createTemp('hmr-orch-');
+    addTearDown(() => dir.delete(recursive: true));
+
+    final orch = ReloadOrchestrator(
+      strategy: strat,
+      watcher: FileWatcher(dir.path),
+    );
+
+    await orch.reload(trigger: 'hotkey:r');
+    await orch.restart(trigger: 'hotkey:R');
+
+    expect(strat.reloads, ['hotkey:r']);
+    expect(strat.restarts, ['hotkey:R']);
   });
 }

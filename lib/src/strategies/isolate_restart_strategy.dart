@@ -104,6 +104,10 @@ class IsolateRestartStrategy implements RunStrategy {
   }
 
   @override
+  Future<ReloadOutcome> restart({String trigger = 'manual'}) =>
+      reload(trigger: trigger);
+
+  @override
   Future<void> send(Object? message) async {
     _appPort?.send(message);
   }

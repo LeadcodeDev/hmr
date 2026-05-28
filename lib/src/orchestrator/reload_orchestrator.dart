@@ -36,6 +36,15 @@ class ReloadOrchestrator {
     _sub = stream.listen((e) => strategy.reload(trigger: e.path));
   }
 
+  /// Triggers an out-of-band reload (e.g. from a hot key) using the same
+  /// pipeline as a file save.
+  Future<ReloadOutcome> reload({String trigger = 'manual'}) =>
+      strategy.reload(trigger: trigger);
+
+  /// Forces a full restart of the child, bypassing hot reload.
+  Future<ReloadOutcome> restart({String trigger = 'manual'}) =>
+      strategy.restart(trigger: trigger);
+
   Future<void> stop() async {
     await _sub?.cancel();
     await watcher.dispose();
