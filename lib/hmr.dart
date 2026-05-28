@@ -1,4 +1,5 @@
 export 'src/domain/config.dart';
+export 'src/domain/entrypoint_resolver.dart';
 export 'src/domain/events.dart';
 export 'src/domain/state.dart';
 export 'src/extensions/file.dart';
