@@ -13,4 +13,4 @@ export 'src/presentation/presenter.dart';
 export 'src/strategies/isolate_restart_strategy.dart';
 export 'src/strategies/run_strategy.dart';
 export 'src/strategies/vm_service_launcher.dart';
-export 'src/strategies/vm_service_reload_strategy.dart';
+export 'src/strategies/vm_service_process_strategy.dart';
