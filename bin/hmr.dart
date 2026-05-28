@@ -75,7 +75,7 @@ Future<void> main(List<String> arguments) async {
   final RunStrategy strategy;
   switch (args['strategy'] as String) {
     case 'vm':
-      strategy = VmServiceReloadStrategy(
+      strategy = VmServiceProcessStrategy(
         entrypoint: entrypoint,
         args: appArgs,
       );

@@ -4,7 +4,7 @@ import 'dart:io';
 
 import 'package:hmr/src/domain/events.dart';
 import 'package:hmr/src/strategies/run_strategy.dart';
-import 'package:hmr/src/strategies/vm_service_reload_strategy.dart';
+import 'package:hmr/src/strategies/vm_service_process_strategy.dart';
 import 'package:test/test.dart';
 import 'package:vm_service/vm_service.dart';
 
@@ -85,7 +85,7 @@ void main() {
       () async {
     final fakeService = _FakeVmService([true]);
 
-    final strategy = VmServiceReloadStrategy(
+    final strategy = VmServiceProcessStrategy(
       entrypoint: entrypoint,
       launcher: (_, __) async => _fakeLaunchResult(fakeService),
     );
@@ -111,7 +111,7 @@ void main() {
   test('falls back to hotRestart when reloadSources reports failure', () async {
     int launchCount = 0;
 
-    final strategy = VmServiceReloadStrategy(
+    final strategy = VmServiceProcessStrategy(
       entrypoint: entrypoint,
       launcher: (_, __) async {
         launchCount++;
@@ -145,7 +145,7 @@ void main() {
   });
 
   test('dispose emits RunnerStopped', () async {
-    final strategy = VmServiceReloadStrategy(
+    final strategy = VmServiceProcessStrategy(
       entrypoint: entrypoint,
       launcher: (_, __) async => _fakeLaunchResult(_FakeVmService([])),
     );

@@ -11,7 +11,7 @@ import 'vm_service_launcher.dart';
 typedef VmServiceLauncherFn = Future<(Process, VmService, Stream<String>)>
     Function(File entrypoint, List<String> args);
 
-class VmServiceReloadStrategy implements RunStrategy {
+class VmServiceProcessStrategy implements RunStrategy {
   final File entrypoint;
   final List<String> args;
   final VmServiceLauncherFn _launcher;
@@ -23,7 +23,7 @@ class VmServiceReloadStrategy implements RunStrategy {
 
   final _events = StreamController<RunnerEvent>.broadcast();
 
-  VmServiceReloadStrategy({
+  VmServiceProcessStrategy({
     required this.entrypoint,
     this.args = const [],
     VmServiceLauncherFn? launcher,

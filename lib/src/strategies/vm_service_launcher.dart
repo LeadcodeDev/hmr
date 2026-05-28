@@ -20,6 +20,7 @@ Future<(Process, VmService, Stream<String>)> launchWithVmService(
       entrypoint.path,
       ...args,
     ],
+    environment: {'HMR_PARENT_PID': pid.toString()},
   );
 
   final stderrController = StreamController<String>.broadcast();
