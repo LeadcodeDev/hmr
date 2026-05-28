@@ -38,12 +38,24 @@ class VmServiceReloadStrategy implements RunStrategy {
   }
 
   Future<void> _launch() async {
-    final (process, service, stderrLines) =
-        await _launcher(entrypoint, args);
+    final (process, service, stderrLines) = await _launcher(entrypoint, args);
     _process = process;
     _service = service;
-    stderrLines.listen((line) => stderr.writeln(line));
+    final errors = <String>[];
+    stderrLines.listen((line) {
+      stderr.writeln(line);
+      errors.add(line);
+    });
     _mainIsolateId = await _resolveMainIsolateId(service);
+    _watchForCrash(process, errors);
+  }
+
+  void _watchForCrash(Process process, List<String> errors) {
+    process.exitCode.then((code) {
+      if (code != 0 && identical(process, _process)) {
+        _events.add(CompileFailed(DateTime.now(), errors.join('\n')));
+      }
+    });
   }
 
   Future<String> _resolveMainIsolateId(VmService service) async {
@@ -130,11 +142,12 @@ class VmServiceReloadStrategy implements RunStrategy {
     } catch (_) {}
     _service = null;
     _mainIsolateId = null;
-    _process?.kill(ProcessSignal.sigterm);
+    final proc = _process;
+    _process = null; // clear before kill so _watchForCrash ignores this exit
+    proc?.kill(ProcessSignal.sigterm);
     try {
-      await _process?.exitCode;
+      await proc?.exitCode;
     } catch (_) {}
-    _process = null;
   }
 
   @override
