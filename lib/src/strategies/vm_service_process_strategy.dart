@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:vm_service/vm_service.dart';
 
 import '../domain/events.dart';
+import '../orchestrator/runtime_bridge.dart';
 import 'run_strategy.dart';
 import 'vm_service_launcher.dart';
 
@@ -19,9 +20,15 @@ class VmServiceProcessStrategy implements RunStrategy {
   Process? _process;
   VmService? _service;
   String? _mainIsolateId;
+  RuntimeBridge? _bridge;
   Future<void>? _inFlight;
 
   final _events = StreamController<RunnerEvent>.broadcast();
+
+  void _emit(RunnerEvent e) {
+    _events.add(e);
+    unawaited(_bridge?.dispatch(e));
+  }
 
   VmServiceProcessStrategy({
     required this.entrypoint,
@@ -35,7 +42,7 @@ class VmServiceProcessStrategy implements RunStrategy {
   @override
   Future<void> start() async {
     await _launch();
-    _events.add(RunnerStarted(DateTime.now()));
+    _emit(RunnerStarted(DateTime.now()));
   }
 
   Future<void> _launch() async {
@@ -48,13 +55,15 @@ class VmServiceProcessStrategy implements RunStrategy {
       errors.add(line);
     });
     _mainIsolateId = await _resolveMainIsolateId(service);
+    _bridge = RuntimeBridge(service: service, isolateId: _mainIsolateId!);
+    await _bridge!.init();
     _watchForCrash(process, errors);
   }
 
   void _watchForCrash(Process process, List<String> errors) {
     process.exitCode.then((code) {
       if (code != 0 && identical(process, _process)) {
-        _events.add(CompileFailed(DateTime.now(), errors.join('\n')));
+        _emit(CompileFailed(DateTime.now(), errors.join('\n')));
       }
     });
   }
@@ -84,13 +93,13 @@ class VmServiceProcessStrategy implements RunStrategy {
   }
 
   Future<ReloadOutcome> _doReload(String trigger) async {
-    _events.add(CompileStarted(DateTime.now(), trigger));
+    _emit(CompileStarted(DateTime.now(), trigger));
     final sw = Stopwatch()..start();
 
     final service = _service;
     final isolateId = _mainIsolateId;
     if (service == null || isolateId == null) {
-      _events.add(CompileFailed(DateTime.now(), 'VM service not connected'));
+      _emit(CompileFailed(DateTime.now(), 'VM service not connected'));
       return ReloadOutcome.failed;
     }
 
@@ -103,8 +112,8 @@ class VmServiceProcessStrategy implements RunStrategy {
     try {
       final report = await service.reloadSources(isolateId, force: true);
       if (report.success ?? false) {
-        _events.add(CompileSucceeded(DateTime.now(), sw.elapsed));
-        _events.add(ReloadSucceeded(DateTime.now(), ReloadKind.hotReload));
+        _emit(CompileSucceeded(DateTime.now(), sw.elapsed));
+        _emit(ReloadSucceeded(DateTime.now(), ReloadKind.hotReload));
         return ReloadOutcome.ok;
       }
 
@@ -116,14 +125,14 @@ class VmServiceProcessStrategy implements RunStrategy {
       stderr.writeln('[hmr] hot-reload rejected ($reason) — restarting');
       await _killProcess();
       await _launch();
-      _events.add(CompileSucceeded(DateTime.now(), sw.elapsed));
-      _events.add(ReloadSucceeded(DateTime.now(), ReloadKind.hotRestart));
+      _emit(CompileSucceeded(DateTime.now(), sw.elapsed));
+      _emit(ReloadSucceeded(DateTime.now(), ReloadKind.hotRestart));
       return ReloadOutcome.fallbackUsed;
     } on RPCError catch (e) {
       if (e.message == 'Service connection disposed') {
         return await _restartAfterCrash(sw);
       }
-      _events.add(CompileFailed(DateTime.now(), e.message));
+      _emit(CompileFailed(DateTime.now(), e.message));
       return ReloadOutcome.failed;
     } catch (_) {
       return await _restartAfterCrash(sw);
@@ -134,11 +143,11 @@ class VmServiceProcessStrategy implements RunStrategy {
     try {
       await _killProcess();
       await _launch();
-      _events.add(CompileSucceeded(DateTime.now(), sw.elapsed));
-      _events.add(ReloadSucceeded(DateTime.now(), ReloadKind.hotRestart));
+      _emit(CompileSucceeded(DateTime.now(), sw.elapsed));
+      _emit(ReloadSucceeded(DateTime.now(), ReloadKind.hotRestart));
       return ReloadOutcome.fallbackUsed;
     } catch (restartErr) {
-      _events.add(CompileFailed(DateTime.now(), restartErr.toString()));
+      _emit(CompileFailed(DateTime.now(), restartErr.toString()));
       return ReloadOutcome.failed;
     }
   }
@@ -149,6 +158,7 @@ class VmServiceProcessStrategy implements RunStrategy {
     } catch (_) {}
     _service = null;
     _mainIsolateId = null;
+    _bridge = null;
     final proc = _process;
     _process = null; // clear before kill so _watchForCrash ignores this exit
     proc?.kill(ProcessSignal.sigterm);
@@ -165,7 +175,7 @@ class VmServiceProcessStrategy implements RunStrategy {
   @override
   Future<void> dispose() async {
     await _killProcess();
-    _events.add(RunnerStopped(DateTime.now()));
+    _emit(RunnerStopped(DateTime.now()));
     await _events.close();
   }
 }
