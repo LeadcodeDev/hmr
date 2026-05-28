@@ -29,9 +29,9 @@ void main() {
   setUpAll(() async {
     // Build a temp clone of impl/ to watch.
     tmpDir = await Directory.systemTemp.createTemp('hmr_e2e_');
+    // test/e2e/hmr_e2e_test.dart → 3 dirname calls → package root → impl/
     final implSrc = Directory(p.join(
       p.dirname(p.dirname(p.dirname(p.fromUri(Platform.script)))),
-      '..',
       'impl',
     ));
     await _copyDir(implSrc, tmpDir);
