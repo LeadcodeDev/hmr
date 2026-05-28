@@ -1,4 +1,4 @@
-import 'package:impl/handler_registry.dart';
+import 'package:example/handler_registry.dart';
 import 'package:test/test.dart';
 
 void main() {
