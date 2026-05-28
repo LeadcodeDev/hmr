@@ -59,6 +59,21 @@ void main() {
     expect(out[0]['reason'], 'connection refused');
   });
 
+  test('ProcessCrashed preserves the full stack trace verbatim', () {
+    final trace = '''
+Unhandled exception:
+StateError: boom
+#0      foo (file:///x.dart:1:1)
+#1      bar (file:///y.dart:2:2)
+#2      _delayEntrypointInvocation.<anonymous closure>'''
+        .trim();
+    final out = _collect([ProcessCrashed(ts, 137, trace)]);
+    expect(out[0]['event'], 'processCrashed');
+    expect(out[0]['exitCode'], 137);
+    // No truncation, no reformatting — the whole trace is one string.
+    expect(out[0]['stderr'], trace);
+  });
+
   test('RunnerStopped emits stopped event', () {
     final out = _collect([RunnerStopped(ts)]);
     expect(out[0]['event'], 'stopped');

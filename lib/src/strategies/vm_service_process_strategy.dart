@@ -50,21 +50,40 @@ class VmServiceProcessStrategy implements RunStrategy {
     _process = process;
     _service = service;
     final errors = <String>[];
-    stderrLines.listen((line) {
-      stderr.writeln(line);
-      errors.add(line);
-    });
+    final stderrDone = Completer<void>();
+    stderrLines.listen(
+      (line) {
+        stderr.writeln(line);
+        errors.add(line);
+      },
+      onDone: () {
+        if (!stderrDone.isCompleted) stderrDone.complete();
+      },
+      onError: (_, __) {
+        if (!stderrDone.isCompleted) stderrDone.complete();
+      },
+    );
     _mainIsolateId = await _resolveMainIsolateId(service);
     _bridge = RuntimeBridge(service: service, isolateId: _mainIsolateId!);
     await _bridge!.init();
-    _watchForCrash(process, errors);
+    _watchForCrash(process, errors, stderrDone.future);
   }
 
-  void _watchForCrash(Process process, List<String> errors) {
-    process.exitCode.then((code) {
-      if (code != 0 && identical(process, _process)) {
-        _emit(CompileFailed(DateTime.now(), errors.join('\n')));
-      }
+  void _watchForCrash(
+    Process process,
+    List<String> errors,
+    Future<void> stderrDone,
+  ) {
+    process.exitCode.then((code) async {
+      if (code == 0 || !identical(process, _process)) return;
+      // Wait for the stderr stream to fully drain so the stack trace is
+      // complete — the OS may deliver the exit code before the last lines
+      // are decoded. Cap the wait so a stuck stream can't block forever.
+      await stderrDone.timeout(
+        const Duration(seconds: 2),
+        onTimeout: () {},
+      );
+      _emit(ProcessCrashed(DateTime.now(), code, errors.join('\n')));
     });
   }
 
