@@ -54,6 +54,9 @@ Future<(Process, VmService, Stream<String>)> launchWithVmService(
         },
       );
 
+  // Forward child stdout directly so the app's print() output is visible.
+  process.stdout.listen(stdout.add);
+
   final wsUri = await uriCompleter.future;
   final service = await vmServiceConnectUri(wsUri);
 
