@@ -2,11 +2,6 @@ import 'dart:io';
 
 import 'package:glob/glob.dart';
 import 'package:hmr/hmr.dart';
-import 'package:hmr/src/orchestrator/reload_orchestrator.dart';
-import 'package:hmr/src/pipeline/file_watcher.dart';
-import 'package:hmr/src/pipeline/filters.dart';
-import 'package:hmr/src/presentation/ansi_presenter.dart';
-import 'package:hmr/src/strategies/isolate_restart_strategy.dart';
 import 'package:path/path.dart' as path;
 
 Future<void> main(List<String> arguments) async {
