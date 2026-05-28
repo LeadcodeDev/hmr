@@ -26,18 +26,35 @@ Future<(Process, VmService, Stream<String>)> launchWithVmService(
   final uriCompleter = Completer<String>();
   final uriPattern = RegExp(r'listening on (https?://\S+)');
 
+  void tryComplete(String line) {
+    if (!uriCompleter.isCompleted) {
+      final match = uriPattern.firstMatch(line);
+      if (match != null) {
+        uriCompleter.complete(wsUriFromHttpUri(match.group(1)!));
+      }
+    }
+  }
+
+  // Dart 3.8+ prints the VM service URI to stdout; earlier versions used
+  // stderr. Scan both so we handle either runtime.
+  //
+  // stdout is single-subscription, so broadcast it to allow two consumers:
+  // one that forwards raw bytes to the parent (app output visible in terminal)
+  // and one that scans lines for the service URI.
+  final stdoutBroadcast = process.stdout.asBroadcastStream();
+  stdoutBroadcast.listen(stdout.add);
+  stdoutBroadcast
+      .transform(utf8.decoder)
+      .transform(const LineSplitter())
+      .listen(tryComplete);
+
   process.stderr
       .transform(utf8.decoder)
       .transform(const LineSplitter())
       .listen(
         (line) {
           stderrController.add(line);
-          if (!uriCompleter.isCompleted) {
-            final match = uriPattern.firstMatch(line);
-            if (match != null) {
-              uriCompleter.complete(wsUriFromHttpUri(match.group(1)!));
-            }
-          }
+          tryComplete(line);
         },
         onError: (Object e, StackTrace st) {
           stderrController.addError(e, st);
@@ -52,9 +69,6 @@ Future<(Process, VmService, Stream<String>)> launchWithVmService(
           }
         },
       );
-
-  // Forward child stdout directly so the app's print() output is visible.
-  process.stdout.listen(stdout.add);
 
   final wsUri = await uriCompleter.future;
   final service = await vmServiceConnectUri(wsUri);

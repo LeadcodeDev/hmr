@@ -82,9 +82,7 @@ class VmServiceReloadStrategy implements RunStrategy {
     }
 
     try {
-      stderr.writeln('[hmr] reloadSources isolate=$isolateId');
       final report = await service.reloadSources(isolateId, force: true);
-      stderr.writeln('[hmr] reloadSources result: success=${report.success}');
       if (report.success ?? false) {
         _events.add(CompileSucceeded(DateTime.now(), sw.elapsed));
         _events.add(ReloadSucceeded(DateTime.now(), ReloadKind.hotReload));
@@ -103,11 +101,10 @@ class VmServiceReloadStrategy implements RunStrategy {
       _events.add(ReloadSucceeded(DateTime.now(), ReloadKind.hotRestart));
       return ReloadOutcome.fallbackUsed;
     } on RPCError catch (e) {
-      stderr.writeln('[hmr] reloadSources RPCError: ${e.message}');
       _events.add(CompileFailed(DateTime.now(), e.message));
       return ReloadOutcome.failed;
     } catch (e, st) {
-      stderr.writeln('[hmr] reloadSources unexpected error: $e\n$st');
+      stderr.writeln('[hmr] unexpected reload error: $e\n$st');
       _events.add(CompileFailed(DateTime.now(), e.toString()));
       return ReloadOutcome.failed;
     }
