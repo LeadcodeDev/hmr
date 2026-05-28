@@ -30,6 +30,9 @@ class AnsiPresenter implements Presenter {
     switch (e) {
       case RunnerStarted():
         _header('wait to watch changes...', Color.green);
+      case FileChanged():
+        // Raw FS signal — handled by hooks/jsonpresenter, no visual noise here.
+        return;
       case CompileStarted(:final trigger):
         _pendingHeader = 'reloading ${_rel(trigger)}';
       case CompileSucceeded(:final elapsed):
@@ -46,6 +49,11 @@ class AnsiPresenter implements Presenter {
         _footer('${kind.name} ok', Color.green);
       case ReloadFailed(:final reason):
         _footer('reload failed: $reason', Color.red);
+      case ProcessCrashed(:final exitCode, :final stderr):
+        _pendingHeader = null;
+        _header('process exited with code $exitCode', Color.red);
+        _out.writeln(stderr);
+        _footer('fix the error and save, or press R to restart', Color.brightBlack);
       case RunnerStopped():
         return;
     }
