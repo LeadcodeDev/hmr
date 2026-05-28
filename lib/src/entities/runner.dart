@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
 
@@ -19,55 +20,51 @@ final class Runner implements RunnerContract {
 
   late File dillFile;
   Isolate? _isolate;
-  bool needClearScreen = false;
 
   ReceivePort? _receivePort;
   SendPort? _sendPort;
   Stream<dynamic>? _broadcast;
 
+  Process? _compileProc;
+  Future<void>? _inFlight;
+
   Runner(
       {required this.entrypoint,
-        required this.tempDirectory,
-        this.isolateName = 'hmr',
-        this.args = const []});
+      required this.tempDirectory,
+      this.isolateName = 'hmr',
+      this.args = const []});
 
   @override
   Future<void> run() async {
     dillFile = File(path.join(tempDirectory.path, 'app.dill'));
-
-    // Listen for app shutdown events, but disable this feature on windows
-    for (final sig in [ProcessSignal.sigint, if (!Platform.isWindows) ProcessSignal.sigterm]) {
-      sig.watch().listen((_) => exit(0));
-    }
-
     await reload();
   }
 
   @override
   Future<void> reload() async {
+    _compileProc?.kill(ProcessSignal.sigterm);
+
+    final previous = _inFlight ?? Future.value();
+    final completer = Completer<void>();
+    _inFlight = completer.future;
+
+    try {
+      await previous;
+      await _doReload();
+    } finally {
+      completer.complete();
+      if (identical(_inFlight, completer.future)) _inFlight = null;
+    }
+  }
+
+  Future<void> _doReload() async {
     final processResult = await _compile();
     if (processResult.exitCode != 0) {
-      final error = processResult.stderr
-          .toString()
-          .replaceAll('Bad state: Generating kernel failed!', '');
-
-      final List<Sequence> sequences = [
-        AsciiControl.lineFeed,
-        SetStyles(Style.foreground(Color.red)),
-        Print('Compilation failed:'),
-        AsciiControl.lineFeed,
-        AsciiControl.lineFeed,
-      ];
-
-      stderr.writeAnsiAll(sequences);
-      stderr.writeln(error);
-      stderr.writeAnsiAll(
-          [const CursorPosition.moveUp(2), SetStyles(Style.reset)]);
-
+      _renderCompileError(processResult.stderr.toString());
       return;
     }
 
-    _isolate?.kill(priority: Isolate.immediate);
+    await _killIsolateGracefully();
 
     _receivePort = ReceivePort();
     _isolate = await _runIsolate(_receivePort!.sendPort);
@@ -75,13 +72,43 @@ final class Runner implements RunnerContract {
     _sendPort = await _broadcast?.first;
   }
 
+  void _renderCompileError(String error) {
+    final cleaned =
+        error.replaceAll('Bad state: Generating kernel failed!', '');
+
+    final List<Sequence> sequences = [
+      AsciiControl.lineFeed,
+      SetStyles(Style.foreground(Color.red)),
+      Print('Compilation failed:'),
+      AsciiControl.lineFeed,
+      AsciiControl.lineFeed,
+    ];
+
+    stderr.writeAnsiAll(sequences);
+    stderr.writeln(cleaned);
+    stderr
+        .writeAnsiAll([const CursorPosition.moveUp(2), SetStyles(Style.reset)]);
+  }
+
+  Future<void> _killIsolateGracefully() async {
+    final iso = _isolate;
+    if (iso == null) return;
+    _sendPort?.send(const {'__hmr__': 'shutdown'});
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    iso.kill(priority: Isolate.beforeNextEvent);
+    _isolate = null;
+    _sendPort = null;
+  }
+
   Future<void> dispose() async {
+    await _killIsolateGracefully();
+    _receivePort?.close();
     try {
       if (await tempDirectory.exists()) {
         await tempDirectory.delete(recursive: true);
       }
     } catch (e) {
-      stderr.writeln('❌ Error cleaning temp directory: $e');
+      stderr.writeln('hmr: failed to clean temp directory: $e');
     }
   }
 
@@ -94,13 +121,26 @@ final class Runner implements RunnerContract {
     );
   }
 
-  Future<ProcessResult> _compile() {
-    final args = ['compile', 'kernel', entrypoint.path, '-o', dillFile.path];
-    return Process.run(
+  Future<ProcessResult> _compile() async {
+    final compileArgs = [
+      'compile',
+      'kernel',
+      entrypoint.path,
+      '-o',
+      dillFile.path
+    ];
+    _compileProc = await Process.start(
       'dart',
-      args,
+      compileArgs,
       workingDirectory: Directory.current.path,
     );
+    final stdoutF =
+        _compileProc!.stdout.transform(systemEncoding.decoder).join();
+    final stderrF =
+        _compileProc!.stderr.transform(systemEncoding.decoder).join();
+    final exitCode = await _compileProc!.exitCode;
+    _compileProc = null;
+    return ProcessResult(0, exitCode, await stdoutF, await stderrF);
   }
 
   @override
@@ -114,11 +154,9 @@ final class Runner implements RunnerContract {
         AsciiControl.lineFeed,
         AsciiControl.lineFeed,
       ];
-
       stderr.writeAnsiAll(sequences);
       return;
     }
-
     _sendPort!.send(message);
   }
 
