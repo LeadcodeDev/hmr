@@ -19,7 +19,7 @@ class FileWatcher {
       // Emit paths relative to the watched root so glob patterns like
       // **/*.dart (relative) match correctly — absolute paths would not.
       final rel = p.relative(evt.path, from: _root);
-final event = switch (evt.type) {
+      final event = switch (evt.type) {
         ChangeType.ADD => FsCreated(rel, at),
         ChangeType.MODIFY => FsModified(rel, at),
         ChangeType.REMOVE => FsDeleted(rel, at),
