@@ -101,22 +101,26 @@ class VmServiceReloadStrategy implements RunStrategy {
       _events.add(ReloadSucceeded(DateTime.now(), ReloadKind.hotRestart));
       return ReloadOutcome.fallbackUsed;
     } on RPCError catch (e) {
+      if (e.message == 'Service connection disposed') {
+        return await _restartAfterCrash(sw);
+      }
       _events.add(CompileFailed(DateTime.now(), e.message));
       return ReloadOutcome.failed;
     } catch (_) {
-      // The service connection was disposed — typically because the child
-      // process crashed during a fatal reload (e.g. a deleted class still
-      // referenced). Attempt a clean restart so the process comes back up.
-      try {
-        await _killProcess();
-        await _launch();
-        _events.add(CompileSucceeded(DateTime.now(), sw.elapsed));
-        _events.add(ReloadSucceeded(DateTime.now(), ReloadKind.hotRestart));
-        return ReloadOutcome.fallbackUsed;
-      } catch (restartErr) {
-        _events.add(CompileFailed(DateTime.now(), restartErr.toString()));
-        return ReloadOutcome.failed;
-      }
+      return await _restartAfterCrash(sw);
+    }
+  }
+
+  Future<ReloadOutcome> _restartAfterCrash(Stopwatch sw) async {
+    try {
+      await _killProcess();
+      await _launch();
+      _events.add(CompileSucceeded(DateTime.now(), sw.elapsed));
+      _events.add(ReloadSucceeded(DateTime.now(), ReloadKind.hotRestart));
+      return ReloadOutcome.fallbackUsed;
+    } catch (restartErr) {
+      _events.add(CompileFailed(DateTime.now(), restartErr.toString()));
+      return ReloadOutcome.failed;
     }
   }
 
