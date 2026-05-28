@@ -1,0 +1,3 @@
+tags:
+  e2e:
+    skip: "Run with --tags=e2e for E2E tests"
