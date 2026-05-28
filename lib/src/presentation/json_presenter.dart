@@ -24,45 +24,57 @@ class JsonPresenter implements Presenter {
   Future<void> dispose() async => _sub?.cancel();
 
   void _render(RunnerEvent e) {
+    final ts = e.at.millisecondsSinceEpoch;
     final Map<String, Object?> payload;
     switch (e) {
       case RunnerStarted():
-        payload = {'event': 'started', 'ts': e.at.millisecondsSinceEpoch};
-      case CompileStarted(:final trigger):
+        payload = {'event': 'started', 'ts': ts};
+      case FileChanged(:final change):
+        payload = {
+          'event': 'fileChanged',
+          'ts': ts,
+          'change': change.toJson(),
+        };
+      case CompileStarted(:final trigger, :final fileEvent):
         payload = {
           'event': 'compileStarted',
-          'ts': e.at.millisecondsSinceEpoch,
+          'ts': ts,
           'trigger': trigger,
+          if (fileEvent != null) 'fileEvent': fileEvent.toJson(),
         };
       case CompileSucceeded(:final elapsed):
         payload = {
           'event': 'compileSucceeded',
-          'ts': e.at.millisecondsSinceEpoch,
+          'ts': ts,
           'elapsedMs': elapsed.inMilliseconds,
         };
       case CompileFailed(:final stderr):
         payload = {
           'event': 'compileFailed',
-          'ts': e.at.millisecondsSinceEpoch,
+          'ts': ts,
           'stderr': stderr,
         };
       case ReloadSucceeded(:final kind):
         payload = {
           'event': 'reloadSucceeded',
-          'ts': e.at.millisecondsSinceEpoch,
+          'ts': ts,
           'kind': kind.name,
         };
       case ReloadFailed(:final reason):
         payload = {
           'event': 'reloadFailed',
-          'ts': e.at.millisecondsSinceEpoch,
+          'ts': ts,
           'reason': reason,
         };
-      case RunnerStopped():
+      case ProcessCrashed(:final exitCode, :final stderr):
         payload = {
-          'event': 'stopped',
-          'ts': e.at.millisecondsSinceEpoch,
+          'event': 'processCrashed',
+          'ts': ts,
+          'exitCode': exitCode,
+          'stderr': stderr,
         };
+      case RunnerStopped():
+        payload = {'event': 'stopped', 'ts': ts};
     }
     _out.writeln(jsonEncode(payload));
   }
