@@ -5,8 +5,9 @@ import 'package:mansion/mansion.dart';
 import 'package:path/path.dart' as p;
 
 import '../domain/events.dart';
+import 'presenter.dart';
 
-class AnsiPresenter {
+class AnsiPresenter implements Presenter {
   final String cwd;
   final IOSink _out;
 
@@ -16,10 +17,12 @@ class AnsiPresenter {
       : cwd = cwd ?? Directory.current.path,
         _out = out ?? stdout;
 
+  @override
   void attach(Stream<RunnerEvent> events) {
     _sub = events.listen(_render);
   }
 
+  @override
   Future<void> dispose() async => _sub?.cancel();
 
   void _render(RunnerEvent e) {

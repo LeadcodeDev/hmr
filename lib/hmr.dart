@@ -7,6 +7,8 @@ export 'src/pipeline/debounce.dart';
 export 'src/pipeline/file_watcher.dart';
 export 'src/pipeline/filters.dart';
 export 'src/presentation/ansi_presenter.dart';
+export 'src/presentation/json_presenter.dart';
+export 'src/presentation/presenter.dart';
 export 'src/strategies/isolate_restart_strategy.dart';
 export 'src/strategies/run_strategy.dart';
 export 'src/strategies/vm_service_launcher.dart';

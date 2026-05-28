@@ -13,6 +13,13 @@ final _argParser = ArgParser()
     defaultsTo: 'restart',
     help: 'Reload strategy: "restart" (isolate restart) or "vm" (hot reload via VM service).',
   )
+  ..addOption(
+    'format',
+    abbr: 'f',
+    allowed: ['ansi', 'json'],
+    defaultsTo: 'ansi',
+    help: 'Output format: "ansi" (human-readable) or "json" (one JSON object per line).',
+  )
   ..addFlag(
     'rescan-extension',
     defaultsTo: false,
@@ -92,7 +99,12 @@ Future<void> main(List<String> arguments) async {
     debounce: Duration(milliseconds: config?.debounce ?? 0),
   );
 
-  final presenter = AnsiPresenter()..attach(orchestrator.events);
+  final Presenter presenter;
+  if (args['format'] == 'json') {
+    presenter = JsonPresenter()..attach(orchestrator.events);
+  } else {
+    presenter = AnsiPresenter()..attach(orchestrator.events);
+  }
 
   Future<void> cleanup() async {
     await orchestrator.stop();
