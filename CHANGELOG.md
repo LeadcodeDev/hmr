@@ -60,7 +60,7 @@ Three supported usage modes:
 
 - Surface a clear, red error message when the configured entrypoint does not
   exist, instead of the cryptic `Bad state: VM service URI not found in child
-  process output`.
+process output`.
 - Stop dropping early runtime-API events: `RuntimeBridge.init` now polls the
   isolate (default 500 ms) for `ext.hmr.dispatch` instead of checking once,
   closing the race between parent VM-service handshake and child `main()`.

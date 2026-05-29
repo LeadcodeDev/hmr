@@ -48,9 +48,11 @@ Future<void> main(List<String> args) async {
   Future<void> cleanup() async {
     if (shuttingDown) return;
     shuttingDown = true;
+
     await hotKeys.stop();
     await orchestrator.stop();
     await presenter.dispose();
+
     exit(0);
   }
 
@@ -69,6 +71,7 @@ Future<void> main(List<String> args) async {
         break;
     }
   });
+
   hotKeys.start();
 
   await orchestrator.start();

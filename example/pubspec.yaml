@@ -6,8 +6,8 @@ publish_to: none
 hmr:
   entrypoint: bin/main.dart
   includes:
-    - '**/*.txt'
-    - '**/*.dart'
+    - "**/*.txt"
+    - "**/*.dart"
 
 environment:
   sdk: ^3.5.3

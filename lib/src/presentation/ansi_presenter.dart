@@ -53,7 +53,8 @@ class AnsiPresenter implements Presenter {
         _pendingHeader = null;
         _header('process exited with code $exitCode', Color.red);
         _out.writeln(stderr);
-        _footer('fix the error and save, or press R to restart', Color.brightBlack);
+        _footer(
+            'fix the error and save, or press R to restart', Color.brightBlack);
       case RunnerStopped():
         return;
     }
@@ -77,7 +78,7 @@ class AnsiPresenter implements Presenter {
   void _footer(String msg, Color color) {
     _out.writeAnsiAll([
       SetStyles(Style.foreground(color)),
-      Print('       $msg'),
+      Print('      $msg'),
       SetStyles.reset,
       AsciiControl.lineFeed,
     ]);
