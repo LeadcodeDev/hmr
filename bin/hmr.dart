@@ -7,23 +7,11 @@ import 'package:path/path.dart' as path;
 
 final _argParser = ArgParser()
   ..addOption(
-    'strategy',
-    abbr: 's',
-    allowed: ['restart', 'vm'],
-    defaultsTo: 'restart',
-    help: 'Reload strategy: "restart" (isolate restart) or "vm" (hot reload via VM service).',
-  )
-  ..addOption(
     'format',
     abbr: 'f',
     allowed: ['ansi', 'json'],
     defaultsTo: 'ansi',
     help: 'Output format: "ansi" (human-readable) or "json" (one JSON object per line).',
-  )
-  ..addFlag(
-    'rescan-extension',
-    defaultsTo: false,
-    help: 'Register ext.hmr.rescan service extension so IDEs can trigger reloads.',
   )
   ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this help message.');
 
@@ -72,21 +60,10 @@ Future<void> main(List<String> arguments) async {
 
   final entrypoint = File(path.joinAll(entryParts));
 
-  final RunStrategy strategy;
-  switch (args['strategy'] as String) {
-    case 'vm':
-      strategy = VmServiceProcessStrategy(
-        entrypoint: entrypoint,
-        args: appArgs,
-      );
-    case _:
-      final tempDir = await Directory.systemTemp.createTemp('hmr');
-      strategy = IsolateRestartStrategy(
-        entrypoint: entrypoint,
-        tempDirectory: tempDir,
-        args: appArgs,
-      );
-  }
+  final strategy = VmServiceProcessStrategy(
+    entrypoint: entrypoint,
+    args: appArgs,
+  );
 
   // Glob.matches() canonicalises the input path to absolute before matching.
   // Relative patterns like **/*.dart compile to regexes that cannot match an

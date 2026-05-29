@@ -17,7 +17,6 @@ process picks up the change in milliseconds.
 ## Layout
 
 - `bin/main.dart` — entrypoint, prints a ticking counter.
-- `lib/counter.dart`, `lib/formatter.dart`, `lib/handler_registry.dart` —
-  library code reloaded on save.
+- `lib/counter.dart`, `lib/formatter.dart` — library code reloaded on save.
 - `tool/shape_change.dart` — script that mutates `Counter`'s shape to
   exercise the hot-restart fallback.

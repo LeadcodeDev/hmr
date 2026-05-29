@@ -56,7 +56,7 @@ void main() {
       () async {
     hmrProcess = await Process.start(
       'dart',
-      ['run', 'hmr', '--format=json', '--strategy=restart'],
+      ['run', 'hmr', '--format=json'],
       workingDirectory: tmpDir.path,
     );
 

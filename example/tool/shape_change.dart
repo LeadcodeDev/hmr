@@ -2,9 +2,8 @@
 //
 // Run with: dart tool/shape_change.dart
 //
-// When hmr is watching with --strategy=vm, this should trigger the
-// shape-change fallback (a full process restart) because adding a field
-// changes the class layout.
+// When hmr is watching, this should trigger the shape-change fallback
+// (a full process restart) because adding a field changes the class layout.
 //
 // To revert: dart tool/shape_change.dart --revert
 import 'dart:io';
@@ -52,6 +51,6 @@ void main(List<String> args) {
   } else {
     file.writeAsStringSync(_modified);
     print('Applied shape change to $_path (added ticks field).');
-    print('If hmr is running with --strategy=vm, watch for a hotRestart event.');
+    print('If hmr is running, watch for a hotRestart event.');
   }
 }
