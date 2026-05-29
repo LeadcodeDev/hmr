@@ -33,7 +33,7 @@ class ReloadOrchestrator {
     if (debounce > Duration.zero) {
       stream = stream.transform(debounceTrailing(debounce));
     }
-    _sub = stream.listen((e) => strategy.reload(trigger: e.path));
+    _sub = stream.listen((e) => strategy.reload(trigger: e.path, fileEvent: e));
   }
 
   /// Triggers an out-of-band reload (e.g. from a hot key) using the same

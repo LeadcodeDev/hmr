@@ -59,7 +59,15 @@ sealed class RunnerEvent {
     final type = json['type'] as String;
     final at = DateTime.parse(json['at']! as String);
     return switch (type) {
-      'runnerStarted' => RunnerStarted(at),
+      'runnerStarted' => RunnerStarted(
+          at,
+          elapsed: json['elapsedUs'] == null
+              ? null
+              : Duration(microseconds: json['elapsedUs']! as int),
+          entrypoint: json['entrypoint'] as String?,
+          serviceUri: json['serviceUri'] as String?,
+          devToolsUri: json['devToolsUri'] as String?,
+        ),
       'fileChanged' => FileChanged(
           at,
           FsEvent.fromJson((json['change']! as Map).cast<String, Object?>()),
@@ -80,7 +88,11 @@ sealed class RunnerEvent {
       'compileFailed' => CompileFailed(at, json['stderr']! as String),
       'reloadSucceeded' => ReloadSucceeded(
           at,
-          ReloadKind.values.byName(json['kind']! as String),
+          switch (json['kind']! as String) {
+            'reload' => ReloadKind.hotReload,
+            'restart' => ReloadKind.hotRestart,
+            final k => throw FormatException('Unknown ReloadKind: $k'),
+          },
         ),
       'reloadFailed' => ReloadFailed(at, json['reason']! as String),
       'processCrashed' => ProcessCrashed(
@@ -95,12 +107,26 @@ sealed class RunnerEvent {
 }
 
 class RunnerStarted extends RunnerEvent {
-  const RunnerStarted(super.at);
+  final Duration? elapsed;
+  final String? entrypoint;
+  final String? serviceUri;
+  final String? devToolsUri;
+  const RunnerStarted(
+    super.at, {
+    this.elapsed,
+    this.entrypoint,
+    this.serviceUri,
+    this.devToolsUri,
+  });
 
   @override
   Map<String, Object?> toJson() => {
         'type': 'runnerStarted',
         'at': at.toIso8601String(),
+        if (elapsed != null) 'elapsedUs': elapsed!.inMicroseconds,
+        if (entrypoint != null) 'entrypoint': entrypoint,
+        if (serviceUri != null) 'serviceUri': serviceUri,
+        if (devToolsUri != null) 'devToolsUri': devToolsUri,
       };
 }
 
@@ -165,7 +191,10 @@ class ReloadSucceeded extends RunnerEvent {
   Map<String, Object?> toJson() => {
         'type': 'reloadSucceeded',
         'at': at.toIso8601String(),
-        'kind': kind.name,
+        'kind': switch (kind) {
+          ReloadKind.hotReload => 'reload',
+          ReloadKind.hotRestart => 'restart',
+        },
       };
 }
 
