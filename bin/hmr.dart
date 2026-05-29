@@ -11,9 +11,11 @@ final _argParser = ArgParser()
     abbr: 'f',
     allowed: ['ansi', 'json'],
     defaultsTo: 'ansi',
-    help: 'Output format: "ansi" (human-readable) or "json" (one JSON object per line).',
+    help:
+        'Output format: "ansi" (human-readable) or "json" (one JSON object per line).',
   )
-  ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this help message.');
+  ..addFlag('help',
+      abbr: 'h', negatable: false, help: 'Show this help message.');
 
 Future<void> main(List<String> arguments) async {
   final ArgResults args;
@@ -22,12 +24,14 @@ Future<void> main(List<String> arguments) async {
   } on FormatException catch (e) {
     stderr.writeln('[hmr] ${e.message}');
     stderr.writeln(_argParser.usage);
+
     exit(1);
   }
 
   if (args['help'] as bool) {
     stdout.writeln('Usage: hmr [options] [-- app-args...]');
     stdout.writeln(_argParser.usage);
+
     exit(0);
   }
 
@@ -35,7 +39,8 @@ Future<void> main(List<String> arguments) async {
 
   final pubSpecFile = File('pubspec.yaml');
   if (!pubSpecFile.existsSync()) {
-    stderr.writeln('[hmr] pubspec.yaml not found, please run inside a Dart project.');
+    stderr.writeln(
+        '[hmr] pubspec.yaml not found, please run inside a Dart project.');
     exit(1);
   }
 
@@ -59,6 +64,22 @@ Future<void> main(List<String> arguments) async {
   }
 
   final entrypoint = File(path.joinAll(entryParts));
+  if (!entrypoint.existsSync()) {
+    final red = stderr.hasTerminal ? '\x1B[31m' : '';
+    final reset = stderr.hasTerminal ? '\x1B[0m' : '';
+    stderr.writeln('$red[hmr] entrypoint not found: ${entrypoint.path}$reset');
+
+    if (config?.entrypoint != null) {
+      stderr.writeln(
+        '$red[hmr] check the `hmr.entrypoint` value in pubspec.yaml.$reset',
+      );
+    } else {
+      stderr.writeln(
+        '$red[hmr] set `hmr.entrypoint` in pubspec.yaml or create bin/${pubSpec['name']}.dart.$reset',
+      );
+    }
+    exit(1);
+  }
 
   final strategy = VmServiceProcessStrategy(
     entrypoint: entrypoint,
@@ -101,9 +122,11 @@ Future<void> main(List<String> arguments) async {
   Future<void> cleanup() async {
     if (shuttingDown) return;
     shuttingDown = true;
+
     await hotKeys.stop();
     await orchestrator.stop();
     await presenter.dispose();
+
     exit(0);
   }
 
@@ -127,6 +150,7 @@ Future<void> main(List<String> arguments) async {
         stdout.write('\x1B[2J\x1B[H');
     }
   });
+
   hotKeys.start();
 
   await orchestrator.start();

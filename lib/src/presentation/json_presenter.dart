@@ -23,59 +23,51 @@ class JsonPresenter implements Presenter {
   @override
   Future<void> dispose() async => _sub?.cancel();
 
-  void _render(RunnerEvent e) {
-    final ts = e.at.millisecondsSinceEpoch;
-    final Map<String, Object?> payload;
-    switch (e) {
-      case RunnerStarted():
-        payload = {'event': 'started', 'ts': ts};
-      case FileChanged(:final change):
-        payload = {
+  void _render(RunnerEvent event) {
+    final ts = event.at.millisecondsSinceEpoch;
+
+    final Map<String, Object?> payload = switch (event) {
+      RunnerStarted() => {'event': 'started', 'ts': ts},
+      FileChanged(:final change) => {
           'event': 'fileChanged',
           'ts': ts,
           'change': change.toJson(),
-        };
-      case CompileStarted(:final trigger, :final fileEvent):
-        payload = {
+        },
+      CompileStarted(:final trigger, :final fileEvent) => {
           'event': 'compileStarted',
           'ts': ts,
           'trigger': trigger,
           if (fileEvent != null) 'fileEvent': fileEvent.toJson(),
-        };
-      case CompileSucceeded(:final elapsed):
-        payload = {
+        },
+      CompileSucceeded(:final elapsed) => {
           'event': 'compileSucceeded',
           'ts': ts,
           'elapsedMs': elapsed.inMilliseconds,
-        };
-      case CompileFailed(:final stderr):
-        payload = {
+        },
+      CompileFailed(:final stderr) => {
           'event': 'compileFailed',
           'ts': ts,
           'stderr': stderr,
-        };
-      case ReloadSucceeded(:final kind):
-        payload = {
+        },
+      ReloadSucceeded(:final kind) => {
           'event': 'reloadSucceeded',
           'ts': ts,
           'kind': kind.name,
-        };
-      case ReloadFailed(:final reason):
-        payload = {
+        },
+      ReloadFailed(:final reason) => {
           'event': 'reloadFailed',
           'ts': ts,
           'reason': reason,
-        };
-      case ProcessCrashed(:final exitCode, :final stderr):
-        payload = {
+        },
+      ProcessCrashed(:final exitCode, :final stderr) => {
           'event': 'processCrashed',
           'ts': ts,
           'exitCode': exitCode,
           'stderr': stderr,
-        };
-      case RunnerStopped():
-        payload = {'event': 'stopped', 'ts': ts};
-    }
+        },
+      RunnerStopped() => {'event': 'stopped', 'ts': ts},
+    };
+
     _out.writeln(jsonEncode(payload));
   }
 }

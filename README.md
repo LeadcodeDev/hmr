@@ -8,17 +8,17 @@ losing in-memory state, and without you wiring anything up.
 
 ## Highlights
 
-| Feature                            | Description                                                                  |
-|------------------------------------|------------------------------------------------------------------------------|
-| 🪄 Zero configuration              | `dart pub global activate hmr` then `hmr` — that's it                        |
-| ⚡ True hot reload                  | Patches the running isolate via the VM service; state is preserved           |
-| 🔁 Automatic full-restart fallback | Shape changes (new fields, etc.) silently fall back to a full restart        |
-| ⌨️ Hot keys                        | `r` reload · `R` restart · `c` clear · `h` help · `q` quit                   |
-| 🧠 Typed runtime API               | Opt into `package:hmr/runtime.dart` to react to events from inside your app  |
-| 🧩 Composable library              | Build your own runner from `RunStrategy` + `FileWatcher` + `Presenter`       |
-| 🎯 Targeted file watching          | Glob `includes` / `excludes` configured in `pubspec.yaml`                    |
-| 🧾 Structured output               | `--format=json` for one JSON event per line — pipeable into anything         |
-| 💥 Crash visibility                | Child stack traces are surfaced verbatim — no truncation, ever               |
+| Feature                            | Description                                                                 |
+| ---------------------------------- | --------------------------------------------------------------------------- |
+| 🪄 Zero configuration              | `dart pub global activate hmr` then `hmr` — that's it                       |
+| ⚡ True hot reload                 | Patches the running isolate via the VM service; state is preserved          |
+| 🔁 Automatic full-restart fallback | Shape changes (new fields, etc.) silently fall back to a full restart       |
+| ⌨️ Hot keys                        | `r` reload · `R` restart · `c` clear · `h` help · `q` quit                  |
+| 🧠 Typed runtime API               | Opt into `package:hmr/runtime.dart` to react to events from inside your app |
+| 🧩 Composable library              | Build your own runner from `RunStrategy` + `FileWatcher` + `Presenter`      |
+| 🎯 Targeted file watching          | Glob `includes` / `excludes` configured in `pubspec.yaml`                   |
+| 🧾 Structured output               | `--format=json` for one JSON event per line — pipeable into anything        |
+| 💥 Crash visibility                | Child stack traces are surfaced verbatim — no truncation, ever              |
 
 ## Contents
 
@@ -111,7 +111,7 @@ existing supervisor — compose the library directly:
 import 'dart:io';
 import 'package:glob/glob.dart';
 import 'package:hmr/hmr.dart';
-import 'package:path/path.dart' as p;
+import 'package:path/path.dart' as path;
 
 Future<void> main(List<String> args) async {
   final root = Directory.current.path;
@@ -124,19 +124,21 @@ Future<void> main(List<String> args) async {
   final orchestrator = ReloadOrchestrator(
     strategy: strategy,
     watcher: FileWatcher(root),
+    debounce: const Duration(milliseconds: 50),
     filters: [
       ignoreSegment(const ['.git', '.dart_tool']),
-      includeGlobs([Glob(p.join(root, '**.dart'))]),
+      includeGlobs([Glob(path.join(root, '**.dart'))]),
     ],
-    debounce: const Duration(milliseconds: 50),
   );
 
   // Bring your own presenter, or use AnsiPresenter / JsonPresenter.
-  final presenter = AnsiPresenter()..attach(orchestrator.events);
+  final presenter = AnsiPresenter()
+    ..attach(orchestrator.events);
 
   ProcessSignal.sigint.watch().listen((_) async {
     await orchestrator.stop();
     await presenter.dispose();
+
     exit(0);
   });
 
@@ -158,19 +160,19 @@ hmr:
   entrypoint: bin/server.dart
   debounce: 50
   includes:
-    - '**/*.dart'
-    - 'config/*.yaml'
+    - "**/*.dart"
+    - "config/*.yaml"
   excludes:
-    - 'test/**'
-    - 'doc/**'
+    - "test/**"
+    - "doc/**"
 ```
 
-| Field        | Type           | Default                         | Description                                                                                                  |
-|--------------|----------------|---------------------------------|--------------------------------------------------------------------------------------------------------------|
-| `entrypoint` | `String`       | `bin/<package>.dart` then `bin/main.dart` | Path (relative to project root) to the Dart file `hmr` runs.                                       |
-| `debounce`   | `int` (ms)     | `0`                             | Coalesce file-system events within this window into a single reload. Must be `>= 0`.                         |
-| `includes`   | `List<String>` | `['**.dart']`                   | Glob patterns; a file change only triggers a reload if it matches at least one include.                      |
-| `excludes`   | `List<String>` | `[]` (plus built-in ignores)    | Glob patterns; matching files are dropped even if `includes` would accept them.                              |
+| Field        | Type           | Default                                   | Description                                                                             |
+| ------------ | -------------- | ----------------------------------------- | --------------------------------------------------------------------------------------- |
+| `entrypoint` | `String`       | `bin/<package>.dart` then `bin/main.dart` | Path (relative to project root) to the Dart file `hmr` runs.                            |
+| `debounce`   | `int` (ms)     | `0`                                       | Coalesce file-system events within this window into a single reload. Must be `>= 0`.    |
+| `includes`   | `List<String>` | `['**.dart']`                             | Glob patterns; a file change only triggers a reload if it matches at least one include. |
+| `excludes`   | `List<String>` | `[]` (plus built-in ignores)              | Glob patterns; matching files are dropped even if `includes` would accept them.         |
 
 **Entrypoint resolution priority** (highest wins):
 
@@ -206,19 +208,19 @@ import 'package:hmr/runtime.dart';
 Hmr.instance.init();
 ```
 
-| Member                                       | Purpose                                                                 |
-|----------------------------------------------|-------------------------------------------------------------------------|
-| `Hmr.instance`                               | Process-wide singleton.                                                  |
-| `Hmr.forTesting()`                           | Fresh isolated instance for unit tests.                                  |
-| `bool isActive`                              | `true` when launched by the `hmr` supervisor (`HMR_PARENT_PID` set).     |
-| `void init()`                                | Registers the VM service extension. Idempotent. No-op outside `hmr`.     |
-| `void on<E extends RunnerEvent>(handler)`    | Catch-all by event type. `on<RunnerEvent>(…)` receives every event.      |
-| `void onReload(handler)`                     | Fires after a successful hot reload (`ReloadKind.hotReload`).            |
-| `void onRestart(handler)`                    | Fires after a successful hot restart (`ReloadKind.hotRestart`).          |
-| `void onFileCreated(handler)`                | Fires for each `FsCreated` file event.                                   |
-| `void onFileModified(handler)`               | Fires for each `FsModified` file event.                                  |
-| `void onFileDeleted(handler)`                | Fires for each `FsDeleted` file event.                                   |
-| `void onFileMoved(handler)`                  | Fires for each `FsMoved` file event.                                     |
+| Member                                    | Purpose                                                              |
+| ----------------------------------------- | -------------------------------------------------------------------- |
+| `Hmr.instance`                            | Process-wide singleton.                                              |
+| `Hmr.forTesting()`                        | Fresh isolated instance for unit tests.                              |
+| `bool isActive`                           | `true` when launched by the `hmr` supervisor (`HMR_PARENT_PID` set). |
+| `void init()`                             | Registers the VM service extension. Idempotent. No-op outside `hmr`. |
+| `void on<E extends RunnerEvent>(handler)` | Catch-all by event type. `on<RunnerEvent>(…)` receives every event.  |
+| `void onReload(handler)`                  | Fires after a successful hot reload (`ReloadKind.hotReload`).        |
+| `void onRestart(handler)`                 | Fires after a successful hot restart (`ReloadKind.hotRestart`).      |
+| `void onFileCreated(handler)`             | Fires for each `FsCreated` file event.                               |
+| `void onFileModified(handler)`            | Fires for each `FsModified` file event.                              |
+| `void onFileDeleted(handler)`             | Fires for each `FsDeleted` file event.                               |
+| `void onFileMoved(handler)`               | Fires for each `FsMoved` file event.                                 |
 
 Handler exceptions are caught and logged to stderr — a buggy hook never
 crashes your app.
@@ -227,21 +229,21 @@ crashes your app.
 
 Import `package:hmr/hmr.dart` to get the composable pieces.
 
-| Symbol                                       | Role                                                                          |
-|----------------------------------------------|-------------------------------------------------------------------------------|
-| `VmServiceProcessStrategy`                   | Launches the entrypoint as a child process, owns the VM service connection.  |
-| `RunStrategy` (interface)                    | Implement to replace the strategy entirely.                                   |
-| `FileWatcher(root)`                          | Recursive file-system watcher emitting `FsEvent`s.                            |
-| `ignoreSegment(List<String>)`                | Filter: drop events whose path contains any forbidden path segment.           |
-| `includeGlobs(List<Glob>)`                   | Filter: keep events matching at least one glob.                               |
-| `excludeGlobs(List<Glob>)`                   | Filter: drop events matching any glob.                                        |
-| `ReloadOrchestrator`                         | Wires strategy + watcher + filters + debounce. Exposes `start/stop/reload/restart`. |
-| `AnsiPresenter`                              | Default human-readable terminal output.                                       |
-| `JsonPresenter`                              | One JSON object per event line (same schema as `--format=json`).              |
-| `Presenter` (interface)                      | Implement `attach(Stream<RunnerEvent>)` + `dispose()` for custom output.      |
-| `HotKeyController`                           | Reads raw stdin, emits `HotKey` enum values. Injectable input + raw-mode fn. |
-| `EntrypointResolver`                         | Reusable entrypoint resolution (CLI → config → conventions).                  |
-| `Config.of(YamlMap)`                         | Parse + validate the `hmr:` pubspec block. Throws `ConfigError` on bad input. |
+| Symbol                        | Role                                                                                |
+| ----------------------------- | ----------------------------------------------------------------------------------- |
+| `VmServiceProcessStrategy`    | Launches the entrypoint as a child process, owns the VM service connection.         |
+| `RunStrategy` (interface)     | Implement to replace the strategy entirely.                                         |
+| `FileWatcher(root)`           | Recursive file-system watcher emitting `FsEvent`s.                                  |
+| `ignoreSegment(List<String>)` | Filter: drop events whose path contains any forbidden path segment.                 |
+| `includeGlobs(List<Glob>)`    | Filter: keep events matching at least one glob.                                     |
+| `excludeGlobs(List<Glob>)`    | Filter: drop events matching any glob.                                              |
+| `ReloadOrchestrator`          | Wires strategy + watcher + filters + debounce. Exposes `start/stop/reload/restart`. |
+| `AnsiPresenter`               | Default human-readable terminal output.                                             |
+| `JsonPresenter`               | One JSON object per event line (same schema as `--format=json`).                    |
+| `Presenter` (interface)       | Implement `attach(Stream<RunnerEvent>)` + `dispose()` for custom output.            |
+| `HotKeyController`            | Reads raw stdin, emits `HotKey` enum values. Injectable input + raw-mode fn.        |
+| `EntrypointResolver`          | Reusable entrypoint resolution (CLI → config → conventions).                        |
+| `Config.of(YamlMap)`          | Parse + validate the `hmr:` pubspec block. Throws `ConfigError` on bad input.       |
 
 `ReloadOrchestrator` constructor:
 
@@ -270,17 +272,17 @@ With `--format=json` each line is a self-contained JSON object. Every
 event carries `event` (the discriminator) and `ts` (milliseconds since
 epoch).
 
-| `event`           | Extra fields                                                  |
-|-------------------|---------------------------------------------------------------|
-| `started`         | —                                                             |
-| `fileChanged`     | `change` (FsEvent: `kind`, `path`, `at`, optional `to`)       |
-| `compileStarted`  | `trigger`, optional `fileEvent`                               |
-| `compileSucceeded`| `elapsedMs`                                                   |
-| `compileFailed`   | `stderr`                                                      |
-| `reloadSucceeded` | `kind` (`hotReload` or `hotRestart`)                          |
-| `reloadFailed`    | `reason`                                                      |
-| `processCrashed`  | `exitCode`, `stderr` (verbatim, no truncation)                |
-| `stopped`         | —                                                             |
+| `event`            | Extra fields                                            |
+| ------------------ | ------------------------------------------------------- |
+| `started`          | —                                                       |
+| `fileChanged`      | `change` (FsEvent: `kind`, `path`, `at`, optional `to`) |
+| `compileStarted`   | `trigger`, optional `fileEvent`                         |
+| `compileSucceeded` | `elapsedMs`                                             |
+| `compileFailed`    | `stderr`                                                |
+| `reloadSucceeded`  | `kind` (`hotReload` or `hotRestart`)                    |
+| `reloadFailed`     | `reason`                                                |
+| `processCrashed`   | `exitCode`, `stderr` (verbatim, no truncation)          |
+| `stopped`          | —                                                       |
 
 `FsEvent.kind` is one of `created`, `modified`, `deleted`, `moved`.
 `moved` events additionally carry a `to` field with the destination path.
