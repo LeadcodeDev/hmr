@@ -27,7 +27,20 @@ class JsonPresenter implements Presenter {
     final ts = event.at.millisecondsSinceEpoch;
 
     final Map<String, Object?> payload = switch (event) {
-      RunnerStarted() => {'event': 'started', 'ts': ts},
+      RunnerStarted(
+        :final elapsed,
+        :final entrypoint,
+        :final serviceUri,
+        :final devToolsUri,
+      ) =>
+        {
+          'event': 'started',
+          'ts': ts,
+          if (elapsed != null) 'elapsedMs': elapsed.inMilliseconds,
+          if (entrypoint != null) 'entrypoint': entrypoint,
+          if (serviceUri != null) 'serviceUri': serviceUri,
+          if (devToolsUri != null) 'devToolsUri': devToolsUri,
+        },
       FileChanged(:final change) => {
           'event': 'fileChanged',
           'ts': ts,
@@ -52,7 +65,10 @@ class JsonPresenter implements Presenter {
       ReloadSucceeded(:final kind) => {
           'event': 'reloadSucceeded',
           'ts': ts,
-          'kind': kind.name,
+          'kind': switch (kind) {
+            ReloadKind.hotReload => 'reload',
+            ReloadKind.hotRestart => 'restart',
+          },
         },
       ReloadFailed(:final reason) => {
           'event': 'reloadFailed',

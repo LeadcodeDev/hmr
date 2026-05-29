@@ -1,5 +1,51 @@
 # Changelog
 
+## 2.1.0
+
+Focus on perceived reload latency and terminal UX polish. No breaking
+changes — existing 2.0.0 setups upgrade in place.
+
+### New
+
+- Smart default exclusions: when no `hmr.excludes` is set in `pubspec.yaml`,
+  irrelevant noise (`test/`, `build/`, `doc(s)/`, `.git/`, `.idea/`,
+  `.vscode/`, editor swap files, `.DS_Store`, …) is skipped to cut perceived
+  reload time. Setting `hmr.excludes` opts out of the defaults and gives you
+  full control. `.dart_tool/` is always ignored regardless.
+- Immediate compile feedback: the reload line is rendered the moment a file
+  change is observed (`CompileStarted`) instead of waiting for the VM to
+  finish. The full restart vs. hot reload verb is decided upfront and shown
+  as the definitive label, so there's no dim-then-swap flicker.
+- "hot restart" label is now shown when the entrypoint file itself is
+  modified (previously displayed as "update"), matching the underlying
+  behavior of forcing a full process restart.
+- `lib/src/version.dart` exposes the package version for CLI surfacing.
+
+### Changed
+
+- JSON event payloads use shorter, less ambiguous `kind` values:
+  `hotReload` → `reload`, `hotRestart` → `restart`. The internal
+  `ReloadKind` enum is unchanged. Consumers of `--format=json` need to
+  update any field they assert on.
+- Removed the "compiled in xx ms" suffix from terminal output — the verb +
+  trigger line is enough; the timing wasn't actionable.
+
+### Fixes
+
+- Force a full restart when the entrypoint file is modified. A hot reload
+  would re-load the source but never re-execute `main()`, leaving the app
+  in a stale state.
+- Detect post-restart crashes and emit `CompileFailed` so the error is
+  rendered in place of a stale "reloading…" header.
+- Suppress the reloading header when a reload resolves to an error — only
+  the error itself is shown.
+- Suppress remaining VM-service info lines that occasionally leaked into
+  child stdout/stderr.
+- Restart the child process when the VM service connection is disposed
+  with an RPC error, instead of hanging on a dead socket.
+- Close the `RuntimeBridge` startup race more reliably by polling for the
+  `ext.hmr.dispatch` extension during initial child startup.
+
 ## 2.0.0
 
 **Flutter-grade HMR for CLI Dart applications.** Major rewrite around the Dart

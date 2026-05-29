@@ -5,11 +5,27 @@ import 'dart:io';
 import 'package:vm_service/vm_service_io.dart';
 import 'package:vm_service/vm_service.dart';
 
+/// Output of [launchWithVmService]. Carries the live child process, an open
+/// VM service connection, the post-URI stderr stream, and the URLs the VM
+/// printed at startup (used by presenters to surface debug entrypoints).
+class LaunchResult {
+  final Process process;
+  final VmService service;
+  final Stream<String> stderrLines;
+  final String serviceUri;
+  final String? devToolsUri;
+
+  LaunchResult({
+    required this.process,
+    required this.service,
+    required this.stderrLines,
+    required this.serviceUri,
+    required this.devToolsUri,
+  });
+}
+
 /// Spawns a Dart child process with the VM service enabled and connects to it.
-///
-/// Returns `(process, service, stderrLines)` where `stderrLines` is a broadcast
-/// stream of all stderr text lines from the child (including post-URI output).
-Future<(Process, VmService, Stream<String>)> launchWithVmService(
+Future<LaunchResult> launchWithVmService(
   File entrypoint,
   List<String> args,
 ) async {
@@ -20,19 +36,27 @@ Future<(Process, VmService, Stream<String>)> launchWithVmService(
       entrypoint.path,
       ...args,
     ],
-    environment: {'HMR_PARENT_PID': pid.toString()},
+    environment: {
+      'HMR_PARENT_PID': pid.toString(),
+      'FORCE_COLOR': '1',
+    },
   );
 
   final stderrController = StreamController<String>.broadcast();
-  final uriCompleter = Completer<String>();
-  final uriPattern = RegExp(r'listening on (https?://\S+)');
+  final serviceUriCompleter = Completer<String>();
+  final devToolsUriCompleter = Completer<String?>();
+  final servicePattern = RegExp(r'listening on (https?://\S+)');
+  final devToolsPattern =
+      RegExp(r'DevTools debugger and profiler is available at:\s*(\S+)');
 
-  void tryComplete(String line) {
-    if (!uriCompleter.isCompleted) {
-      final match = uriPattern.firstMatch(line);
-      if (match != null) {
-        uriCompleter.complete(wsUriFromHttpUri(match.group(1)!));
-      }
+  void scan(String line) {
+    if (!serviceUriCompleter.isCompleted) {
+      final match = servicePattern.firstMatch(line);
+      if (match != null) serviceUriCompleter.complete(match.group(1)!);
+    }
+    if (!devToolsUriCompleter.isCompleted) {
+      final match = devToolsPattern.firstMatch(line);
+      if (match != null) devToolsUriCompleter.complete(match.group(1)!);
     }
   }
 
@@ -43,7 +67,7 @@ Future<(Process, VmService, Stream<String>)> launchWithVmService(
       .transform(utf8.decoder)
       .transform(const LineSplitter())
       .listen((line) {
-        tryComplete(line);
+        scan(line);
         if (!_isVmServiceLine(line)) stdout.writeln(line);
       });
 
@@ -52,27 +76,47 @@ Future<(Process, VmService, Stream<String>)> launchWithVmService(
       .transform(const LineSplitter())
       .listen(
         (line) {
-          tryComplete(line);
+          scan(line);
           if (!_isVmServiceLine(line)) stderrController.add(line);
         },
         onError: (Object e, StackTrace st) {
           stderrController.addError(e, st);
-          if (!uriCompleter.isCompleted) uriCompleter.completeError(e, st);
+          if (!serviceUriCompleter.isCompleted) {
+            serviceUriCompleter.completeError(e, st);
+          }
+          if (!devToolsUriCompleter.isCompleted) {
+            devToolsUriCompleter.complete(null);
+          }
         },
         onDone: () {
           stderrController.close();
-          if (!uriCompleter.isCompleted) {
-            uriCompleter.completeError(
+          if (!serviceUriCompleter.isCompleted) {
+            serviceUriCompleter.completeError(
               StateError('VM service URI not found in child process output'),
             );
+          }
+          if (!devToolsUriCompleter.isCompleted) {
+            devToolsUriCompleter.complete(null);
           }
         },
       );
 
-  final wsUri = await uriCompleter.future;
-  final service = await vmServiceConnectUri(wsUri);
+  final serviceUri = await serviceUriCompleter.future;
+  final service = await vmServiceConnectUri(wsUriFromHttpUri(serviceUri));
 
-  return (process, service, stderrController.stream);
+  // DevTools is printed right after the service line on the same channel,
+  // so it's already in flight. Wait briefly for it; if it never arrives
+  // (e.g. --disable-dart-dev), fall back to null.
+  final devToolsUri = await devToolsUriCompleter.future
+      .timeout(const Duration(seconds: 1), onTimeout: () => null);
+
+  return LaunchResult(
+    process: process,
+    service: service,
+    stderrLines: stderrController.stream,
+    serviceUri: serviceUri,
+    devToolsUri: devToolsUri,
+  );
 }
 
 bool _isVmServiceLine(String line) =>

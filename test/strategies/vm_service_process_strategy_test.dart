@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:hmr/src/domain/events.dart';
 import 'package:hmr/src/strategies/run_strategy.dart';
+import 'package:hmr/src/strategies/vm_service_launcher.dart';
 import 'package:hmr/src/strategies/vm_service_process_strategy.dart';
 import 'package:test/test.dart';
 import 'package:vm_service/vm_service.dart';
@@ -80,8 +81,13 @@ class _FakeVmService extends VmService {
 
 Process _fakeProcess() => _FakeProcess();
 
-(Process, VmService, Stream<String>) _fakeLaunchResult(_FakeVmService svc) =>
-    (_fakeProcess(), svc, Stream<String>.empty());
+LaunchResult _fakeLaunchResult(_FakeVmService svc) => LaunchResult(
+      process: _fakeProcess(),
+      service: svc,
+      stderrLines: const Stream<String>.empty(),
+      serviceUri: 'http://127.0.0.1:0/test/',
+      devToolsUri: null,
+    );
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -195,10 +201,12 @@ void main() {
 
     final strategy = VmServiceProcessStrategy(
       entrypoint: entrypoint,
-      launcher: (_, __) async => (
-        crashProc,
-        _FakeVmService(const []),
-        stderrCtl.stream,
+      launcher: (_, __) async => LaunchResult(
+        process: crashProc,
+        service: _FakeVmService(const []),
+        stderrLines: stderrCtl.stream,
+        serviceUri: 'http://127.0.0.1:0/test/',
+        devToolsUri: null,
       ),
     );
 

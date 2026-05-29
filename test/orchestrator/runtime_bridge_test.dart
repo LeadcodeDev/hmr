@@ -93,7 +93,7 @@ void main() {
       final raw = call.args!['event'] as String;
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
       expect(decoded['type'], 'reloadSucceeded');
-      expect(decoded['kind'], 'hotReload');
+      expect(decoded['kind'], 'reload');
     });
 
     test('dispatch swallows RPC errors so the parent stays alive', () async {
