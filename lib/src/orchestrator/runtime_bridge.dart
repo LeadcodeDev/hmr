@@ -24,13 +24,32 @@ class RuntimeBridge {
 
   bool get isAvailable => _available;
 
-  Future<void> init() async {
-    try {
-      final isolate = await _service.getIsolate(_isolateId);
-      _available =
-          isolate.extensionRPCs?.contains(extensionName) ?? false;
-    } catch (_) {
-      _available = false;
+  /// Polls the isolate until the runtime extension appears, bounded by
+  /// [timeout]. The child registers `ext.hmr.dispatch` synchronously at the
+  /// top of `main()`, but the parent can finish its VM-service handshake
+  /// before that happens — so a single check would race with the child's
+  /// startup. Apps that never opt into the runtime API simply burn the full
+  /// timeout once at launch (and once per restart), which is acceptable.
+  Future<void> init({
+    Duration timeout = const Duration(milliseconds: 500),
+    Duration pollInterval = const Duration(milliseconds: 25),
+  }) async {
+    final deadline = DateTime.now().add(timeout);
+    while (true) {
+      try {
+        final isolate = await _service.getIsolate(_isolateId);
+        if (isolate.extensionRPCs?.contains(extensionName) ?? false) {
+          _available = true;
+          return;
+        }
+      } catch (_) {
+        // Transient — keep polling until the deadline.
+      }
+      if (!DateTime.now().isBefore(deadline)) {
+        _available = false;
+        return;
+      }
+      await Future<void>.delayed(pollInterval);
     }
   }
 

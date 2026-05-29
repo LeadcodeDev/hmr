@@ -52,7 +52,7 @@ void main() {
       final svc = _FakeVmService(isolateExtensions: ['ext.dart.timeDilation']);
       final bridge = RuntimeBridge(service: svc, isolateId: 'isolates/1');
 
-      await bridge.init();
+      await bridge.init(timeout: const Duration(milliseconds: 20));
 
       expect(bridge.isAvailable, isFalse);
     });
@@ -61,7 +61,7 @@ void main() {
       final svc = _FakeVmService(getIsolateThrows: true);
       final bridge = RuntimeBridge(service: svc, isolateId: 'isolates/1');
 
-      await bridge.init();
+      await bridge.init(timeout: const Duration(milliseconds: 20));
 
       expect(bridge.isAvailable, isFalse);
     });
@@ -69,7 +69,7 @@ void main() {
     test('dispatch no-ops when bridge is unavailable', () async {
       final svc = _FakeVmService(isolateExtensions: const []);
       final bridge = RuntimeBridge(service: svc, isolateId: 'isolates/1');
-      await bridge.init();
+      await bridge.init(timeout: const Duration(milliseconds: 20));
 
       await bridge.dispatch(RunnerStarted(DateTime.now()));
 
@@ -132,11 +132,27 @@ void main() {
       final svc = _FakeVmService(isolateExtensions: <String>[]);
       final bridge = RuntimeBridge(service: svc, isolateId: 'isolates/1');
 
-      await bridge.init();
+      await bridge.init(timeout: const Duration(milliseconds: 20));
       expect(bridge.isAvailable, isFalse);
 
       svc.isolateExtensions.add('ext.hmr.dispatch');
       await bridge.init();
+      expect(bridge.isAvailable, isTrue);
+    });
+
+    test('init polls until the extension appears within the timeout',
+        () async {
+      final svc = _FakeVmService(isolateExtensions: <String>[]);
+      final bridge = RuntimeBridge(service: svc, isolateId: 'isolates/1');
+
+      // Simulate the child registering the extension shortly after launch,
+      // after the parent has already started polling.
+      Future<void>.delayed(const Duration(milliseconds: 30), () {
+        svc.isolateExtensions.add('ext.hmr.dispatch');
+      });
+
+      await bridge.init(timeout: const Duration(milliseconds: 200));
+
       expect(bridge.isAvailable, isTrue);
     });
   });
