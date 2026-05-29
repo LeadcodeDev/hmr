@@ -1,12 +1,12 @@
-# 🚀 Hot Module Replacement for Dart Applications
+# 🚀 HMR
 
-**HMR Dart** brings Flutter-grade hot reload to command-line Dart applications.
+**Hot Module Replacement** for Dart Applications brings Flutter-grade hot reload to command-line Dart applications.
 
-It runs your program as a child process attached to the Dart VM service, then
-patches code in place on every save — without restarting the process, without
-losing in-memory state, and without you wiring anything up.
+It runs your program as a child process attached to the Dart VM service, then patches code in place on every save: without restarting the process, without losing in-memory state, and without you wiring anything up.
 
-## Highlights
+![icons technologies](https://skillicons.dev/icons?i=dart,flutter)
+
+## Key features
 
 | Feature                            | Description                                                                 |
 | ---------------------------------- | --------------------------------------------------------------------------- |
@@ -17,7 +17,7 @@ losing in-memory state, and without you wiring anything up.
 | 🧠 Typed runtime API               | Opt into `package:hmr/runtime.dart` to react to events from inside your app |
 | 🧩 Composable library              | Build your own runner from `RunStrategy` + `FileWatcher` + `Presenter`      |
 | 🎯 Targeted file watching          | Glob `includes` / `excludes` configured in `pubspec.yaml`                   |
-| 🧾 Structured output               | `--format=json` for one JSON event per line — pipeable into anything        |
+| 🧾 Structured output               | `--format=json` for one JSON event per line, pipeable into anything         |
 | 💥 Crash visibility                | Child stack traces are surfaced verbatim — no truncation, ever              |
 
 ## Contents
@@ -51,13 +51,15 @@ dev_dependencies:
 
 ## Usage modes
 
-### 1. Built-in CLI (zero-config)
+### Built-in CLI (zero-config)
 
 From any Dart project root:
 
 ```sh
 hmr
 ```
+
+See more [configuration options](#configuration-reference)
 
 That covers the 80% case. `hmr` watches `**/*.dart` from the current
 directory and launches `bin/<package>.dart` (or `bin/main.dart`). Save a
@@ -69,7 +71,7 @@ App arguments go after `--`:
 hmr -- --port 8080 --verbose
 ```
 
-### 2. Runtime API (in-app hooks)
+### Runtime API (in-app hooks)
 
 When your app needs to react to reloads (re-register handlers, invalidate
 caches, re-open connections, etc.), import `package:hmr/runtime.dart` from
@@ -81,7 +83,7 @@ import 'package:hmr/runtime.dart';
 void main(List<String> args) {
   Hmr.instance.init();
 
-  Hmr.instance.onReload((e) {
+  Hmr.instance.onReload((_) {
     print('Code reloaded — handlers still valid');
   });
 
@@ -101,7 +103,7 @@ The runtime is a no-op outside `hmr` (detected via the `HMR_PARENT_PID`
 environment variable), so the same `main()` works for both `hmr` and
 plain `dart run`. No conditional imports, no production-build flags.
 
-### 3. Custom runner (build your own)
+### Custom runner (build your own)
 
 When you need behaviour the built-in CLI doesn't expose — a custom output
 format, alternate file watcher, extra hot keys, integration with an
@@ -117,7 +119,7 @@ Future<void> main(List<String> args) async {
   final root = Directory.current.path;
 
   final strategy = VmServiceProcessStrategy(
-    entrypoint: File(p.join(root, 'bin', 'main.dart')),
+    entrypoint: File(path.join(root, 'bin', 'main.dart')),
     args: args,
   );
 
