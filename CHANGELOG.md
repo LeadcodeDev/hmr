@@ -1,5 +1,36 @@
 # Changelog
 
+## 2.0.0
+
+**Flutter-grade HMR for CLI Dart applications.** Major rewrite around the Dart
+VM service: true hot reload (no recompilation pipeline, no isolate restart),
+preserved app state, and a child-side runtime API for reacting to events.
+
+### New
+
+- `VmServiceProcessStrategy` — launches the entry point as a child process with
+  `--enable-vm-service=0`, then issues `reloadSources` on file changes.
+- Automatic fallback from hot reload to a full restart on shape changes.
+- `package:hmr/runtime.dart` — opt-in `Hmr.instance` API for the child process
+  to subscribe to typed events (`onReload`, `onRestart`, `onFileCreated`,
+  `onFileModified`, `onFileDeleted`, `onFileMoved`, or a generic `on<E>`).
+- Hot keys: `r` (reload), `R` (restart), `c` (clear), `h` (help), `q` (quit).
+- Structured event model with JSON serialization (`--format=json`) covering
+  `started`, `compileStarted`, `compileSucceeded`, `compileFailed`,
+  `reloadSucceeded`, `reloadFailed`, `fileChanged`, `processCrashed`,
+  `stopped`.
+- `ProcessCrashed` preserves the full child stderr verbatim — no truncation.
+- `EntrypointResolver` with a documented priority chain: CLI arg → pubspec
+  `hmr.entrypoint` → `bin/<package>.dart` → `bin/main.dart`.
+
+### Breaking
+
+- Removed `IsolateRestartStrategy` and the `--strategy` flag — every run uses
+  the VM-service strategy.
+- Removed the `--rescan-extension` flag (use the runtime API instead).
+- Renamed `impl/` to `example/` (pub.dev convention).
+- Renamed `VmServiceReloadStrategy` → `VmServiceProcessStrategy`.
+
 ## 1.4.1
 
 - remove `SIGTERM` on windows
