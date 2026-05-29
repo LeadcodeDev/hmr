@@ -14,3 +14,4 @@ export 'src/presentation/presenter.dart';
 export 'src/strategies/run_strategy.dart';
 export 'src/strategies/vm_service_launcher.dart';
 export 'src/strategies/vm_service_process_strategy.dart';
+export 'src/version.dart';

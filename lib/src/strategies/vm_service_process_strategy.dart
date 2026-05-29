@@ -9,8 +9,8 @@ import '../orchestrator/runtime_bridge.dart';
 import 'run_strategy.dart';
 import 'vm_service_launcher.dart';
 
-typedef VmServiceLauncherFn = Future<(Process, VmService, Stream<String>)>
-    Function(File entrypoint, List<String> args);
+typedef VmServiceLauncherFn = Future<LaunchResult> Function(
+    File entrypoint, List<String> args);
 
 class VmServiceProcessStrategy implements RunStrategy {
   final File entrypoint;
@@ -20,6 +20,8 @@ class VmServiceProcessStrategy implements RunStrategy {
   Process? _process;
   VmService? _service;
   String? _mainIsolateId;
+  String? _serviceUri;
+  String? _devToolsUri;
   RuntimeBridge? _bridge;
   Future<void>? _inFlight;
 
@@ -41,17 +43,28 @@ class VmServiceProcessStrategy implements RunStrategy {
 
   @override
   Future<void> start() async {
+    final sw = Stopwatch()..start();
     await _launch();
-    _emit(RunnerStarted(DateTime.now()));
+    _emit(RunnerStarted(
+      DateTime.now(),
+      elapsed: sw.elapsed,
+      entrypoint: entrypoint.path,
+      serviceUri: _serviceUri,
+      devToolsUri: _devToolsUri,
+    ));
   }
 
   Future<void> _launch() async {
-    final (process, service, stderrLines) = await _launcher(entrypoint, args);
+    final result = await _launcher(entrypoint, args);
+    final process = result.process;
+    final service = result.service;
     _process = process;
     _service = service;
+    _serviceUri = result.serviceUri;
+    _devToolsUri = result.devToolsUri;
     final errors = <String>[];
     final stderrDone = Completer<void>();
-    stderrLines.listen(
+    result.stderrLines.listen(
       (line) {
         stderr.writeln(line);
         errors.add(line);
@@ -98,13 +111,16 @@ class VmServiceProcessStrategy implements RunStrategy {
   }
 
   @override
-  Future<ReloadOutcome> reload({String trigger = 'manual'}) async {
+  Future<ReloadOutcome> reload({
+    String trigger = 'manual',
+    FsEvent? fileEvent,
+  }) async {
     final previous = _inFlight ?? Future.value();
     final completer = Completer<void>();
     _inFlight = completer.future;
     try {
       await previous;
-      return await _doReload(trigger);
+      return await _doReload(trigger, fileEvent);
     } finally {
       completer.complete();
       if (identical(_inFlight, completer.future)) _inFlight = null;
@@ -112,13 +128,16 @@ class VmServiceProcessStrategy implements RunStrategy {
   }
 
   @override
-  Future<ReloadOutcome> restart({String trigger = 'manual'}) async {
+  Future<ReloadOutcome> restart({
+    String trigger = 'manual',
+    FsEvent? fileEvent,
+  }) async {
     final previous = _inFlight ?? Future.value();
     final completer = Completer<void>();
     _inFlight = completer.future;
     try {
       await previous;
-      _emit(CompileStarted(DateTime.now(), trigger));
+      _emit(CompileStarted(DateTime.now(), trigger, fileEvent: fileEvent));
       final sw = Stopwatch()..start();
       return await _restartAfterCrash(sw);
     } finally {
@@ -127,8 +146,8 @@ class VmServiceProcessStrategy implements RunStrategy {
     }
   }
 
-  Future<ReloadOutcome> _doReload(String trigger) async {
-    _emit(CompileStarted(DateTime.now(), trigger));
+  Future<ReloadOutcome> _doReload(String trigger, FsEvent? fileEvent) async {
+    _emit(CompileStarted(DateTime.now(), trigger, fileEvent: fileEvent));
     final sw = Stopwatch()..start();
 
     final service = _service;

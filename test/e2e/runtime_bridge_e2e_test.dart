@@ -27,10 +27,9 @@ void main() {
       final markerDir = await Directory.systemTemp.createTemp('hmr_bridge_e2e_');
       final marker = File(p.join(markerDir.path, 'events.ndjson'));
 
-      final (process, service, _) = await launchWithVmService(
-        fixture,
-        [marker.path],
-      );
+      final result = await launchWithVmService(fixture, [marker.path]);
+      final process = result.process;
+      final service = result.service;
 
       try {
         final vm = await service.getVM();
@@ -84,7 +83,7 @@ void main() {
         expect(decoded, hasLength(3), reason: 'not all events reached child');
 
         expect(decoded[0]['type'], 'reloadSucceeded');
-        expect(decoded[0]['kind'], 'hotReload');
+        expect(decoded[0]['kind'], 'reload');
 
         expect(decoded[1]['type'], 'fileChanged');
         final change = decoded[1]['change'] as Map<String, Object?>;

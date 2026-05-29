@@ -20,13 +20,19 @@ class _FakeStrategy implements RunStrategy {
   Future<void> start() async => _events.add(RunnerStarted(DateTime.now()));
 
   @override
-  Future<ReloadOutcome> reload({String trigger = 'manual'}) async {
+  Future<ReloadOutcome> reload({
+    String trigger = 'manual',
+    FsEvent? fileEvent,
+  }) async {
     reloads.add(trigger);
     return ReloadOutcome.ok;
   }
 
   @override
-  Future<ReloadOutcome> restart({String trigger = 'manual'}) async {
+  Future<ReloadOutcome> restart({
+    String trigger = 'manual',
+    FsEvent? fileEvent,
+  }) async {
     restarts.add(trigger);
     return ReloadOutcome.fallbackUsed;
   }

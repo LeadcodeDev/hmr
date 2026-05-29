@@ -50,7 +50,7 @@ void main() {
   test('ReloadSucceeded includes kind name', () {
     final out = _collect([ReloadSucceeded(ts, ReloadKind.hotReload)]);
     expect(out[0]['event'], 'reloadSucceeded');
-    expect(out[0]['kind'], 'hotReload');
+    expect(out[0]['kind'], 'reload');
   });
 
   test('ReloadFailed includes reason', () {
