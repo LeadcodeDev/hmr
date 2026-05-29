@@ -98,7 +98,7 @@ packages:
     source: hosted
     version: "4.0.0"
   glob:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: glob
       sha256: c3f1ee72c96f8f78935e18aa8cecced9ab132419e8625dc187e1c2408efc20de
@@ -111,7 +111,7 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "1.4.1"
+    version: "2.0.0"
   http_multi_server:
     dependency: transitive
     description:
@@ -201,7 +201,7 @@ packages:
     source: hosted
     version: "2.2.0"
   path:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: path
       sha256: "75cca69d1490965be98c73ceaea117e8a04dd21217b37b292c9ddbec0d955bc5"
