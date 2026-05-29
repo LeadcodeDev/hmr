@@ -137,7 +137,12 @@ class VmServiceProcessStrategy implements RunStrategy {
     _inFlight = completer.future;
     try {
       await previous;
-      _emit(CompileStarted(DateTime.now(), trigger, fileEvent: fileEvent));
+      _emit(CompileStarted(
+        DateTime.now(),
+        trigger,
+        fileEvent: fileEvent,
+        kind: ReloadKind.hotRestart,
+      ));
       final sw = Stopwatch()..start();
       return await _restartAfterCrash(sw);
     } finally {
@@ -147,7 +152,18 @@ class VmServiceProcessStrategy implements RunStrategy {
   }
 
   Future<ReloadOutcome> _doReload(String trigger, FsEvent? fileEvent) async {
-    _emit(CompileStarted(DateTime.now(), trigger, fileEvent: fileEvent));
+    // Entry point changes require a full restart — main() won't re-execute
+    // after a hot reload so any initialisation changes would be invisible.
+    // We decide before emitting so the CompileStarted event carries the
+    // correct kind hint for presenters.
+    final isEntrypoint =
+        p.canonicalize(trigger) == p.canonicalize(entrypoint.path);
+    _emit(CompileStarted(
+      DateTime.now(),
+      trigger,
+      fileEvent: fileEvent,
+      kind: isEntrypoint ? ReloadKind.hotRestart : ReloadKind.hotReload,
+    ));
     final sw = Stopwatch()..start();
 
     final service = _service;
@@ -157,9 +173,7 @@ class VmServiceProcessStrategy implements RunStrategy {
       return ReloadOutcome.failed;
     }
 
-    // Entry point changes require a full restart — main() won't re-execute
-    // after a hot reload so any initialisation changes would be invisible.
-    if (p.canonicalize(trigger) == p.canonicalize(entrypoint.path)) {
+    if (isEntrypoint) {
       return await _restartAfterCrash(sw);
     }
 

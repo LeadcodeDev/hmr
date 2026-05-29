@@ -80,6 +80,12 @@ sealed class RunnerEvent {
               : FsEvent.fromJson(
                   (json['fileEvent']! as Map).cast<String, Object?>(),
                 ),
+          kind: switch (json['kind']) {
+            'reload' => ReloadKind.hotReload,
+            'restart' => ReloadKind.hotRestart,
+            null => null,
+            final k => throw FormatException('Unknown ReloadKind: $k'),
+          },
         ),
       'compileSucceeded' => CompileSucceeded(
           at,
@@ -148,7 +154,14 @@ class FileChanged extends RunnerEvent {
 class CompileStarted extends RunnerEvent {
   final String trigger;
   final FsEvent? fileEvent;
-  const CompileStarted(super.at, this.trigger, {this.fileEvent});
+
+  /// The kind of operation the strategy intends to perform. Set when the
+  /// strategy can predict the outcome upfront (e.g. an entrypoint change
+  /// forces `hotRestart`; the `R` hotkey forces `hotRestart` too). `null`
+  /// when the strategy emits without a prediction.
+  final ReloadKind? kind;
+
+  const CompileStarted(super.at, this.trigger, {this.fileEvent, this.kind});
 
   @override
   Map<String, Object?> toJson() => {
@@ -156,6 +169,11 @@ class CompileStarted extends RunnerEvent {
         'at': at.toIso8601String(),
         'trigger': trigger,
         if (fileEvent != null) 'fileEvent': fileEvent!.toJson(),
+        if (kind != null)
+          'kind': switch (kind!) {
+            ReloadKind.hotReload => 'reload',
+            ReloadKind.hotRestart => 'restart',
+          },
       };
 }
 

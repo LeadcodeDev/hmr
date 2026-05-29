@@ -17,7 +17,6 @@ class AnsiPresenter implements Presenter {
 
   StreamSubscription<RunnerEvent>? _sub;
   String? _pendingTrigger;
-  FsEvent? _pendingFileEvent;
   String? _lastTrigger;
   int _repeatCount = 0;
 
@@ -53,32 +52,37 @@ class AnsiPresenter implements Presenter {
       case FileChanged():
         // Raw FS signal — handled by hooks/jsonpresenter, no visual noise here.
         return;
-      case CompileStarted(:final trigger, :final fileEvent):
+      case CompileStarted(
+          :final at,
+          :final trigger,
+          :final fileEvent,
+          :final kind,
+        ):
         _pendingTrigger = trigger;
-        _pendingFileEvent = fileEvent;
+        if (trigger == _lastTrigger) {
+          _repeatCount++;
+        } else {
+          _repeatCount = 1;
+          _lastTrigger = trigger;
+        }
+        // Definitive line emitted at save-time — gives the user immediate
+        // feedback even when the underlying VM reload takes seconds.
+        _reloadLine(
+            at, _actionLabel(fileEvent, trigger, kind), trigger, Color.green,
+            count: _repeatCount);
       case CompileSucceeded():
         return;
       case CompileFailed(:final stderr):
         _pendingTrigger = null;
-        _pendingFileEvent = null;
         _header('compilation failed', Color.red);
         _out.writeln(stderr);
-      case ReloadSucceeded(:final at, :final kind):
-        final action = _actionLabel(_pendingFileEvent, kind);
-        if (_pendingTrigger != null && _pendingTrigger == _lastTrigger) {
-          _repeatCount++;
-        } else {
-          _repeatCount = 1;
-          _lastTrigger = _pendingTrigger;
-        }
-        _reloadLine(at, action, _pendingTrigger, Color.green,
-            count: _repeatCount);
+      case ReloadSucceeded():
         _pendingTrigger = null;
-        _pendingFileEvent = null;
       case ReloadFailed(:final at, :final reason):
-        _reloadLine(at, 'error', _pendingTrigger, Color.red, suffix: reason);
+        _reloadLine(
+            at, 'error', _pendingTrigger, Color.red,
+            suffix: reason, count: _repeatCount);
         _pendingTrigger = null;
-        _pendingFileEvent = null;
       case ProcessCrashed(:final exitCode, :final stderr):
         _pendingTrigger = null;
         _header('process exited with code $exitCode', Color.red);
@@ -93,12 +97,18 @@ class AnsiPresenter implements Presenter {
   String _rel(String path) =>
       path.startsWith(cwd) ? p.relative(path, from: cwd) : path;
 
-  String _actionLabel(FsEvent? event, ReloadKind kind) => switch (event) {
-        FsCreated() => 'created',
-        FsDeleted() => 'deleted',
-        FsModified() || FsMoved() => 'update',
-        null => kind == ReloadKind.hotRestart ? 'hot restart' : 'reload',
-      };
+  String _actionLabel(FsEvent? event, String? trigger, ReloadKind? kind) {
+    // An explicit `hotRestart` hint from the strategy always wins — an
+    // entrypoint update is technically a "modified" FsEvent but the user
+    // sees a full restart, so the verb must reflect that.
+    if (kind == ReloadKind.hotRestart) return 'hot restart';
+    return switch (event) {
+      FsCreated() => 'created',
+      FsDeleted() => 'deleted',
+      FsModified() || FsMoved() => 'update',
+      null => trigger == 'hotkey:R' ? 'hot restart' : 'reload',
+    };
+  }
 
   String _fmtTime(DateTime t) => '${t.hour.toString().padLeft(2, '0')}:'
       '${t.minute.toString().padLeft(2, '0')}:'

@@ -97,13 +97,18 @@ Future<void> main(List<String> arguments) async {
           .map((g) => Glob(path.join(root, g.pattern)))
           .toList();
 
+  // `.dart_tool` is always excluded — the user cannot opt back in. Everything
+  // else is overridable: when `hmr.excludes` is set in pubspec.yaml the user
+  // takes full responsibility for what gets filtered, otherwise we apply a
+  // sensible default list (tests, build/doc dirs, IDE config, editor temp
+  // artefacts).
+  final excludes = config?.excludes ?? defaultExcludes;
   final orchestrator = ReloadOrchestrator(
     strategy: strategy,
     watcher: FileWatcher(root),
     filters: [
-      ignoreSegment(const ['~', '.git', '.dart_tool', '.idea', '.vscode']),
-      if (config?.excludes case final List<Glob> ex)
-        excludeGlobs(absoluteGlobs(ex, '**')),
+      ignoreSegment(const ['.dart_tool']),
+      excludeGlobs(absoluteGlobs(excludes, '**')),
       includeGlobs(absoluteGlobs(config?.includes, '**.dart')),
     ],
     debounce: Duration(milliseconds: config?.debounce ?? 0),
